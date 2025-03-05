@@ -18,4 +18,8 @@ export declare class AgentController {
         totalReadyAgents: number;
         readyAgents: import("./entities/agent.entity").Agent[];
     }>;
+    getAllAgents(): Promise<{
+        totalAgents: number;
+        Agents: import("./entities/agent.entity").Agent[];
+    }>;
 }

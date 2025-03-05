@@ -39,4 +39,21 @@ export class ChatController {
             message: `User ${userId} successfully removed from the queue.`,
         };
     }
+
+    // Endpoint for user to leave the chat or queue
+    @Post('leave-user-chat')
+    async leaveUserChat(@Body('userId') userId: string) {
+        console.log(
+            `[LEAVE USER CHAT] User ${userId} requested to leave chat.`,
+        );
+
+        return await this.chatService.leaveUserChat(userId);
+    }
+
+    @Post('leave-agent-chat')
+    async leaveChat(@Body('agentId') agentId: string) {
+        console.log(`[LEAVE CHAT] Agent ${agentId} is leaving the chat.`);
+
+        return await this.chatService.leaveAgentChat(agentId);
+    }
 }

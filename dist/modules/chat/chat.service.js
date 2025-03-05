@@ -117,21 +117,60 @@ let ChatService = class ChatService {
         await this.roomRepository.save(room);
         return { message: `User ${userId} has left the chat.` };
     }
-    async agentLeavesChat(agentId) {
-        await this.agentRepository.update({ agentId }, { status: 'ready' });
-        const waitingRoom = await this.roomRepository.findOne({
+    async leaveUserChat(userId) {
+        const chatRoom = await this.roomRepository.findOne({
+            where: { userId },
+        });
+        if (!chatRoom) {
+            return { message: `User ${userId} not found in any chat.` };
+        }
+        if (chatRoom.agentId) {
+            const agent = await this.agentRepository.findOne({
+                where: { agentId: chatRoom.agentId },
+            });
+            if (agent) {
+                await this.agentRepository.update(agent.agentId, {
+                    status: 'ready',
+                });
+                console.log(`Agent ${agent.agentId} is now ready.`);
+            }
+        }
+        await this.roomRepository.delete(chatRoom.id);
+        console.log(`[LEAVE CHAT] User ${userId} has left. Room ${chatRoom.id} deleted.`);
+        return { message: `User ${userId} successfully removed from chat.` };
+    }
+    async leaveAgentChat(agentId) {
+        console.log(`[LEAVE CHAT] Agent ${agentId} is leaving the chat.`);
+        const agent = await this.agentRepository.findOne({
+            where: { agentId },
+        });
+        if (!agent) {
+            return { message: `Agent ${agentId} not found.` };
+        }
+        await this.agentRepository.update(agent.id, { status: 'ready' });
+        console.log(`Agent ${agentId} is now ready.`);
+        const waitingRooms = await this.roomRepository.find({
             where: { agentId: (0, typeorm_2.IsNull)() },
         });
-        if (waitingRoom) {
-            waitingRoom.agentId = agentId;
-            await this.roomRepository.save(waitingRoom);
-            await this.agentRepository.update({ agentId }, { status: 'busy' });
+        if (waitingRooms.length > 0) {
+            const waitingRoom = waitingRooms[0];
+            await this.roomRepository.update(waitingRoom.id, {
+                agentId: agent.agentId,
+            });
+            await this.agentRepository.update(agent.id, { status: 'busy' });
+            console.log(`Assigned Agent ${agentId} to Room ${waitingRoom.id}.`);
+            const userId = waitingRoom.userId;
             return {
-                message: `Agent ${agentId} has been assigned to waiting user in Room ${waitingRoom.id}.`,
+                message: `Agent ${agentId} is now ready and assigned to Room ${waitingRoom.id}.`,
+                roomId: waitingRoom.id,
+                userId: userId,
             };
         }
+        else {
+            console.log(`No users in queue for Agent ${agentId}.`);
+        }
         return {
-            message: `Agent ${agentId} is now available for future chats.`,
+            message: `Agent ${agentId} is now ready and no users are in the queue.`,
         };
     }
 };

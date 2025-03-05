@@ -153,29 +153,91 @@ export class ChatService {
         return { message: `User ${userId} has left the chat.` };
     }
 
-    // Handle agent leaving chat (marks agent as ready and assigns to waiting user if any)
-    async agentLeavesChat(agentId: string): Promise<{ message: string }> {
-        // Mark the agent as ready
-        await this.agentRepository.update({ agentId }, { status: 'ready' });
-
-        // Check if there is a waiting user in the queue
-        const waitingRoom = await this.roomRepository.findOne({
-            where: { agentId: IsNull() },
+    async leaveUserChat(userId: string): Promise<{ message: string }> {
+        // Step 1: Find the room for the user (whether they're in the queue or in an active chat)
+        const chatRoom = await this.roomRepository.findOne({
+            where: { userId },
         });
 
-        if (waitingRoom) {
-            // Assign the ready agent to the waiting user
-            waitingRoom.agentId = agentId;
-            await this.roomRepository.save(waitingRoom);
-            await this.agentRepository.update({ agentId }, { status: 'busy' });
+        if (!chatRoom) {
+            return { message: `User ${userId} not found in any chat.` };
+        }
 
+        // Step 2: If the user has an assigned agent, we need to update the agent status
+        if (chatRoom.agentId) {
+            // If the user has an agent, we mark the agent as 'ready'
+            const agent = await this.agentRepository.findOne({
+                where: { agentId: chatRoom.agentId },
+            });
+
+            if (agent) {
+                await this.agentRepository.update(agent.agentId, {
+                    status: 'ready',
+                });
+                console.log(`Agent ${agent.agentId} is now ready.`);
+            }
+        }
+
+        // Step 3: Delete the room to remove the user from the queue or active chat
+        await this.roomRepository.delete(chatRoom.id);
+
+        console.log(
+            `[LEAVE CHAT] User ${userId} has left. Room ${chatRoom.id} deleted.`,
+        );
+
+        return { message: `User ${userId} successfully removed from chat.` };
+    }
+
+    async leaveAgentChat(
+        agentId: string,
+    ): Promise<{ message: string; roomId?: number; userId?: string }> {
+        console.log(`[LEAVE CHAT] Agent ${agentId} is leaving the chat.`);
+
+        // Find the agent by agentId
+        const agent = await this.agentRepository.findOne({
+            where: { agentId },
+        });
+
+        if (!agent) {
+            return { message: `Agent ${agentId} not found.` };
+        }
+
+        // Update the agent's status to 'ready'
+        await this.agentRepository.update(agent.id, { status: 'ready' });
+
+        console.log(`Agent ${agentId} is now ready.`);
+
+        // Check if there are any users waiting in the queue (rooms with no assigned agent)
+        const waitingRooms = await this.roomRepository.find({
+            where: { agentId: IsNull() }, // Find all rooms where no agent is assigned
+        });
+
+        if (waitingRooms.length > 0) {
+            // Assign this agent to the first waiting room
+            const waitingRoom = waitingRooms[0]; // Get the first room in the queue
+            await this.roomRepository.update(waitingRoom.id, {
+                agentId: agent.agentId,
+            });
+
+            // Mark the agent as 'busy' since they've been assigned to a user
+            await this.agentRepository.update(agent.id, { status: 'busy' });
+
+            console.log(`Assigned Agent ${agentId} to Room ${waitingRoom.id}.`);
+
+            const userId = waitingRoom.userId;
+
+            // Return the room ID along with the message
             return {
-                message: `Agent ${agentId} has been assigned to waiting user in Room ${waitingRoom.id}.`,
+                message: `Agent ${agentId} is now ready and assigned to Room ${waitingRoom.id}.`,
+                roomId: waitingRoom.id, // Return the room ID that the agent was assigned to
+                userId: userId!,
             };
+        } else {
+            console.log(`No users in queue for Agent ${agentId}.`);
         }
 
         return {
-            message: `Agent ${agentId} is now available for future chats.`,
+            message: `Agent ${agentId} is now ready and no users are in the queue.`,
         };
     }
 }

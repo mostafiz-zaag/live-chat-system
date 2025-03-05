@@ -16,8 +16,8 @@ exports.ChatRepository = void 0;
 const common_1 = require("@nestjs/common");
 const typeorm_1 = require("@nestjs/typeorm");
 const typeorm_2 = require("typeorm");
-const room_entity_1 = require("./entities/room.entity");
 const message_entity_1 = require("./entities/message.entity");
+const room_entity_1 = require("./entities/room.entity");
 let ChatRepository = class ChatRepository {
     constructor(roomRepository, messageRepository) {
         this.roomRepository = roomRepository;
@@ -31,7 +31,9 @@ let ChatRepository = class ChatRepository {
         await this.roomRepository.update({ id: roomId }, { agentId });
     }
     async createMessage(roomId, sender, content) {
-        const room = await this.roomRepository.findOne({ where: { id: roomId } });
+        const room = await this.roomRepository.findOne({
+            where: { id: roomId },
+        });
         if (!room) {
             throw new Error('Room not found');
         }

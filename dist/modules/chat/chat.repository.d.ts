@@ -1,6 +1,6 @@
 import { Repository } from 'typeorm';
-import { Room } from './entities/room.entity';
 import { Message } from './entities/message.entity';
+import { Room } from './entities/room.entity';
 export declare class ChatRepository {
     private readonly roomRepository;
     private readonly messageRepository;

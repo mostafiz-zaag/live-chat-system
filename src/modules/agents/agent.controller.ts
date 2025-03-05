@@ -15,8 +15,13 @@ export class AgentController {
         return this.agentsService.finishChat(agentId);
     }
 
-    @Get('all')
+    @Get('all-ready-agents')
     async getAgents() {
+        return this.agentsService.getAllReadyAgents();
+    }
+
+    @Get('/all')
+    async getAllAgents() {
         return this.agentsService.getAllAgents();
     }
 }

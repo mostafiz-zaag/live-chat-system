@@ -5,4 +5,12 @@ export declare class ChatController {
     leaveQueue(userId: string): Promise<{
         message: string;
     }>;
+    leaveUserChat(userId: string): Promise<{
+        message: string;
+    }>;
+    leaveChat(agentId: string): Promise<{
+        message: string;
+        roomId?: number;
+        userId?: string;
+    }>;
 }

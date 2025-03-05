@@ -38,6 +38,14 @@ let ChatController = class ChatController {
             message: `User ${userId} successfully removed from the queue.`,
         };
     }
+    async leaveUserChat(userId) {
+        console.log(`[LEAVE USER CHAT] User ${userId} requested to leave chat.`);
+        return await this.chatService.leaveUserChat(userId);
+    }
+    async leaveChat(agentId) {
+        console.log(`[LEAVE CHAT] Agent ${agentId} is leaving the chat.`);
+        return await this.chatService.leaveAgentChat(agentId);
+    }
 };
 exports.ChatController = ChatController;
 __decorate([
@@ -47,6 +55,20 @@ __decorate([
     __metadata("design:paramtypes", [String]),
     __metadata("design:returntype", Promise)
 ], ChatController.prototype, "leaveQueue", null);
+__decorate([
+    (0, common_1.Post)('leave-user-chat'),
+    __param(0, (0, common_1.Body)('userId')),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [String]),
+    __metadata("design:returntype", Promise)
+], ChatController.prototype, "leaveUserChat", null);
+__decorate([
+    (0, common_1.Post)('leave-agent-chat'),
+    __param(0, (0, common_1.Body)('agentId')),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [String]),
+    __metadata("design:returntype", Promise)
+], ChatController.prototype, "leaveChat", null);
 exports.ChatController = ChatController = __decorate([
     (0, common_1.Controller)('chat'),
     __metadata("design:paramtypes", [chat_service_1.ChatService])

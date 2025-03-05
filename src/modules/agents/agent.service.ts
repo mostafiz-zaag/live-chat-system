@@ -133,7 +133,7 @@ export class AgentService {
     /**
      * Get All Ready Agents
      */
-    async getAllAgents(): Promise<{
+    async getAllReadyAgents(): Promise<{
         totalReadyAgents: number;
         readyAgents: Agent[];
     }> {
@@ -150,6 +150,22 @@ export class AgentService {
         return {
             totalReadyAgents: readyAgents.length,
             readyAgents,
+        };
+    }
+
+    async getAllAgents(): Promise<{
+        totalAgents: number;
+        Agents: Agent[];
+    }> {
+        console.log(`[GET ALL AGENTS] Fetching all agents...`);
+
+        const agents = await this.agentRepository.find({});
+
+        console.log(`[GET ALL AGENTS] Found ${agents.length} agents.`);
+
+        return {
+            totalAgents: agents.length,
+            Agents: agents, // Corrected: Using the 'agents' variable here
         };
     }
 

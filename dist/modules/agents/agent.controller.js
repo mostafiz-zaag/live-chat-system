@@ -26,6 +26,9 @@ let AgentController = class AgentController {
         return this.agentsService.finishChat(agentId);
     }
     async getAgents() {
+        return this.agentsService.getAllReadyAgents();
+    }
+    async getAllAgents() {
         return this.agentsService.getAllAgents();
     }
 };
@@ -45,11 +48,17 @@ __decorate([
     __metadata("design:returntype", Promise)
 ], AgentController.prototype, "finishChat", null);
 __decorate([
-    (0, common_1.Get)('all'),
+    (0, common_1.Get)('all-ready-agents'),
     __metadata("design:type", Function),
     __metadata("design:paramtypes", []),
     __metadata("design:returntype", Promise)
 ], AgentController.prototype, "getAgents", null);
+__decorate([
+    (0, common_1.Get)('/all'),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", []),
+    __metadata("design:returntype", Promise)
+], AgentController.prototype, "getAllAgents", null);
 exports.AgentController = AgentController = __decorate([
     (0, common_1.Controller)('agents'),
     __metadata("design:paramtypes", [agent_service_1.AgentService])

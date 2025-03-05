@@ -2,8 +2,8 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { Room } from './entities/room.entity';
 import { Message } from './entities/message.entity';
+import { Room } from './entities/room.entity';
 
 @Injectable()
 export class ChatRepository {
@@ -23,8 +23,14 @@ export class ChatRepository {
         await this.roomRepository.update({ id: roomId }, { agentId }); // Use 'id' instead of 'roomId'
     }
 
-    async createMessage(roomId: number, sender: string, content: string): Promise<Message> {
-        const room = await this.roomRepository.findOne({ where: { id: roomId } });
+    async createMessage(
+        roomId: number,
+        sender: string,
+        content: string,
+    ): Promise<Message> {
+        const room = await this.roomRepository.findOne({
+            where: { id: roomId },
+        });
         if (!room) {
             throw new Error('Room not found');
         }

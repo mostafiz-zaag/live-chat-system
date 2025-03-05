@@ -19,9 +19,13 @@ export declare class AgentService {
         totalReadyAgents: number;
         readyAgents: Agent[];
     }>;
-    getAllAgents(): Promise<{
+    getAllReadyAgents(): Promise<{
         totalReadyAgents: number;
         readyAgents: Agent[];
+    }>;
+    getAllAgents(): Promise<{
+        totalAgents: number;
+        Agents: Agent[];
     }>;
     getNextAvailableAgent(): Promise<Agent | null>;
     markAgentBusy(agentId: string): Promise<void>;

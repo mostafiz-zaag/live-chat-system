@@ -141,6 +141,15 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
         @ConnectedSocket() client: Socket,
         @MessageBody() data: any,
     ) {
+        if (typeof data === 'string') {
+            try {
+                data = JSON.parse(data);
+            } catch (error) {
+                console.error('❌ Error: Invalid JSON format.');
+                client.emit('error', { message: 'Invalid JSON format.' });
+                return;
+            }
+        }
         const { roomId } = data;
 
         if (!roomId) {

@@ -25,7 +25,12 @@ export declare class ChatService {
     userLeavesChat(userId: string): Promise<{
         message: string;
     }>;
-    agentLeavesChat(agentId: string): Promise<{
+    leaveUserChat(userId: string): Promise<{
         message: string;
+    }>;
+    leaveAgentChat(agentId: string): Promise<{
+        message: string;
+        roomId?: number;
+        userId?: string;
     }>;
 }

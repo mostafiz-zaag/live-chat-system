@@ -95,7 +95,7 @@ let AgentService = class AgentService {
             readyAgents,
         };
     }
-    async getAllAgents() {
+    async getAllReadyAgents() {
         console.log(`[GET ALL AGENTS] Fetching agents with status 'ready'...`);
         const readyAgents = await this.agentRepository.find({
             where: { status: 'ready' },
@@ -104,6 +104,15 @@ let AgentService = class AgentService {
         return {
             totalReadyAgents: readyAgents.length,
             readyAgents,
+        };
+    }
+    async getAllAgents() {
+        console.log(`[GET ALL AGENTS] Fetching all agents...`);
+        const agents = await this.agentRepository.find({});
+        console.log(`[GET ALL AGENTS] Found ${agents.length} agents.`);
+        return {
+            totalAgents: agents.length,
+            Agents: agents,
         };
     }
     async getNextAvailableAgent() {

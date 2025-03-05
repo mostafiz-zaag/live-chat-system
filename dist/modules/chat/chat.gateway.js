@@ -94,6 +94,16 @@ let ChatGateway = class ChatGateway {
         this.server.to(roomIdStr).emit('newMessage', { sender, message });
     }
     async handleGetChatHistory(client, data) {
+        if (typeof data === 'string') {
+            try {
+                data = JSON.parse(data);
+            }
+            catch (error) {
+                console.error('❌ Error: Invalid JSON format.');
+                client.emit('error', { message: 'Invalid JSON format.' });
+                return;
+            }
+        }
         const { roomId } = data;
         if (!roomId) {
             client.emit('error', { message: 'roomId is required.' });
