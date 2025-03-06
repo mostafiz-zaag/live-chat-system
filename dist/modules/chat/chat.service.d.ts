@@ -17,7 +17,11 @@ export declare class ChatService {
     assignAgent(roomId: number, agentId: string): Promise<void>;
     getWaitingUsers(): Promise<{
         queueSize: number;
-        waitingRooms: number[];
+        waitingRooms: {
+            roomId: number;
+            userId: string;
+            roomName: string;
+        }[];
     }>;
     getRoomById(roomId: number): Promise<Room | null>;
     getWaitingRoomByUser(userId: string): Promise<Room | null>;

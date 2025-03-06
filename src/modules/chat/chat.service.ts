@@ -105,15 +105,20 @@ export class ChatService {
 
     async getWaitingUsers(): Promise<{
         queueSize: number;
-        waitingRooms: number[];
+        waitingRooms: { roomId: number; userId: string; roomName: string }[];
     }> {
         const waitingRooms = await this.roomRepository.find({
             where: { agentId: IsNull() }, // ✅ Find all rooms where no agent is assigned
+            select: ['id', 'userId', 'name'], // Select required fields
         });
 
         return {
             queueSize: waitingRooms.length,
-            waitingRooms: waitingRooms.map((room) => room.id),
+            waitingRooms: waitingRooms.map((room) => ({
+                roomId: room.id,
+                userId: room.userId ?? 'Unknown', // ✅ Ensure userId is always a string
+                roomName: room.name, // Include the room name
+            })),
         };
     }
 

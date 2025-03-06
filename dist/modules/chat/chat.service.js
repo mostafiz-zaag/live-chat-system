@@ -85,10 +85,15 @@ let ChatService = class ChatService {
     async getWaitingUsers() {
         const waitingRooms = await this.roomRepository.find({
             where: { agentId: (0, typeorm_2.IsNull)() },
+            select: ['id', 'userId', 'name'],
         });
         return {
             queueSize: waitingRooms.length,
-            waitingRooms: waitingRooms.map((room) => room.id),
+            waitingRooms: waitingRooms.map((room) => ({
+                roomId: room.id,
+                userId: room.userId ?? 'Unknown',
+                roomName: room.name,
+            })),
         };
     }
     async getRoomById(roomId) {

@@ -8,6 +8,10 @@ export declare class UserController {
     }>;
     getQueueSize(): Promise<{
         queueSize: number;
-        waitingRooms: number[];
+        waitingRooms: {
+            roomId: number;
+            userId: string;
+            roomName: string;
+        }[];
     }>;
 }

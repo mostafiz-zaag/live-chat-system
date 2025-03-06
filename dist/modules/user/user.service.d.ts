@@ -13,6 +13,10 @@ export declare class UserService {
     }>;
     getQueueSize(): Promise<{
         queueSize: number;
-        waitingRooms: number[];
+        waitingRooms: {
+            roomId: number;
+            userId: string;
+            roomName: string;
+        }[];
     }>;
 }

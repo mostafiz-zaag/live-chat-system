@@ -111,7 +111,7 @@ export class UserService {
 
     async getQueueSize(): Promise<{
         queueSize: number;
-        waitingRooms: number[];
+        waitingRooms: { roomId: number; userId: string; roomName: string }[];
     }> {
         const queueSizeData = await this.chatService.getWaitingUsers();
         return queueSizeData;
