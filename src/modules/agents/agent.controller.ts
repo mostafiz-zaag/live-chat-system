@@ -5,9 +5,14 @@ import { AgentService } from './agent.service';
 export class AgentController {
     constructor(private readonly agentsService: AgentService) {}
 
-    @Post('join-queue')
+    @Post('ready')
     async joinQueue(@Body('agentId') agentId: string) {
         return this.agentsService.joinQueue(agentId);
+    }
+
+    @Post('/busy')
+    async markAgentBusy(@Body('agentId') agentId: string) {
+        return this.agentsService.markAgentBusy(agentId);
     }
 
     @Post('finish-chat')

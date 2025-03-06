@@ -22,6 +22,9 @@ let AgentController = class AgentController {
     async joinQueue(agentId) {
         return this.agentsService.joinQueue(agentId);
     }
+    async markAgentBusy(agentId) {
+        return this.agentsService.markAgentBusy(agentId);
+    }
     async finishChat(agentId) {
         return this.agentsService.finishChat(agentId);
     }
@@ -34,12 +37,19 @@ let AgentController = class AgentController {
 };
 exports.AgentController = AgentController;
 __decorate([
-    (0, common_1.Post)('join-queue'),
+    (0, common_1.Post)('ready'),
     __param(0, (0, common_1.Body)('agentId')),
     __metadata("design:type", Function),
     __metadata("design:paramtypes", [String]),
     __metadata("design:returntype", Promise)
 ], AgentController.prototype, "joinQueue", null);
+__decorate([
+    (0, common_1.Post)('/busy'),
+    __param(0, (0, common_1.Body)('agentId')),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [String]),
+    __metadata("design:returntype", Promise)
+], AgentController.prototype, "markAgentBusy", null);
 __decorate([
     (0, common_1.Post)('finish-chat'),
     __param(0, (0, common_1.Body)('agentId')),

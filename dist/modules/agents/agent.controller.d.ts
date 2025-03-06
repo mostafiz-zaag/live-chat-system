@@ -8,6 +8,9 @@ export declare class AgentController {
         totalReadyAgents: number;
         readyAgents: import("./entities/agent.entity").Agent[];
     }>;
+    markAgentBusy(agentId: string): Promise<{
+        message: string;
+    }>;
     finishChat(agentId: string): Promise<{
         message: string;
         assignedRoom?: import("../chat/entities/room.entity").Room;

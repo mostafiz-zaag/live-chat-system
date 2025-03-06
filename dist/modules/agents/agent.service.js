@@ -119,8 +119,25 @@ let AgentService = class AgentService {
         return this.agentRepository.findOne({ where: { status: 'ready' } });
     }
     async markAgentBusy(agentId) {
+        const agent = await this.agentRepository.findOne({
+            where: { agentId },
+        });
+        if (!agent) {
+            console.warn(`[AGENT SERVICE] Agent ${agentId} not found.`);
+            return {
+                message: `Agent ${agentId} not found.`,
+            };
+        }
         await this.agentRepository.update({ agentId }, { status: 'busy' });
         console.log(`[AGENT SERVICE] Agent ${agentId} marked as busy.`);
+        return {
+            message: `Agent ${agentId} marked as busy.`,
+        };
+    }
+    async getAgentById(agentId) {
+        return await this.agentRepository.findOne({
+            where: { agentId },
+        });
     }
 };
 exports.AgentService = AgentService;

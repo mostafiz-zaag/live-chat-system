@@ -179,8 +179,28 @@ export class AgentService {
     /**
      * Mark an Agent as Busy
      */
-    async markAgentBusy(agentId: string): Promise<void> {
+    async markAgentBusy(agentId: string): Promise<{ message: string }> {
+        // find that agent
+        const agent = await this.agentRepository.findOne({
+            where: { agentId },
+        });
+
+        if (!agent) {
+            console.warn(`[AGENT SERVICE] Agent ${agentId} not found.`);
+            return {
+                message: `Agent ${agentId} not found.`,
+            };
+        }
         await this.agentRepository.update({ agentId }, { status: 'busy' });
         console.log(`[AGENT SERVICE] Agent ${agentId} marked as busy.`);
+        return {
+            message: `Agent ${agentId} marked as busy.`,
+        };
+    }
+
+    async getAgentById(agentId: string): Promise<Agent | null> {
+        return await this.agentRepository.findOne({
+            where: { agentId },
+        });
     }
 }

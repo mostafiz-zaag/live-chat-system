@@ -23,23 +23,28 @@ let UserService = class UserService {
     async requestAssistance(userId) {
         console.log(`[USER REQUEST] User ${userId} requested assistance.`);
         let { message, room: chatRoom } = await this.chatService.createRoom(userId);
-        const readyAgent = await this.agentService.getNextAvailableAgent();
-        if (readyAgent) {
-            chatRoom.agentId = readyAgent.agentId;
-            chatRoom = await this.chatService.updateRoom(chatRoom);
-            const agent = await this.agentService.markAgentBusy(readyAgent.agentId);
-            console.log('--------------agent after assigning-----------', agent);
-            console.log(`[USER REQUEST] Assigned Agent ${readyAgent.agentId} to Room ${chatRoom.id}.`);
+        let assignedAgent = chatRoom.agentId
+            ? await this.agentService.getAgentById(chatRoom.agentId)
+            : await this.agentService.getNextAvailableAgent();
+        if (assignedAgent) {
+            if (!chatRoom.agentId) {
+                chatRoom.agentId = assignedAgent.agentId;
+                chatRoom = await this.chatService.updateRoom(chatRoom);
+            }
+            await this.agentService.markAgentBusy(assignedAgent.agentId);
+            console.log(`[USER REQUEST] Assigned Agent ${assignedAgent.agentId} to Room ${chatRoom.id}.`);
+            message = `Agent ${assignedAgent.agentId} is assigned to your chat.`;
         }
         else {
             console.log(`[USER REQUEST] No agents available. Room ${chatRoom.id} is waiting.`);
+            message = `Chat room created. Waiting for an agent.`;
         }
         await this.natsService.publish('user.request', {
             userId,
             roomId: chatRoom.id,
         });
         return {
-            message: `Chat room created. ${readyAgent ? `Agent ${readyAgent.agentId} is assigned.` : `Waiting for an agent.`}`,
+            message,
             room: chatRoom,
         };
     }

@@ -28,5 +28,8 @@ export declare class AgentService {
         Agents: Agent[];
     }>;
     getNextAvailableAgent(): Promise<Agent | null>;
-    markAgentBusy(agentId: string): Promise<void>;
+    markAgentBusy(agentId: string): Promise<{
+        message: string;
+    }>;
+    getAgentById(agentId: string): Promise<Agent | null>;
 }
