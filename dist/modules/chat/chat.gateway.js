@@ -113,6 +113,11 @@ let ChatGateway = class ChatGateway {
         client.emit('chatHistory', messages);
         console.log(`📜 Sent chat history for room ${roomId}`);
     }
+    async broadcastFileToRoom(roomId, fileUrl, fileKey) {
+        console.log(`Broadcasting file to room ${roomId}: ${fileUrl}`);
+        await this.chatService.saveMessage(Number(roomId), 'system', `File uploaded: ${fileUrl}`);
+        this.server.to(roomId).emit('newFile', { fileUrl, fileKey });
+    }
 };
 exports.ChatGateway = ChatGateway;
 __decorate([

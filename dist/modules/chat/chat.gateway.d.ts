@@ -11,4 +11,5 @@ export declare class ChatGateway implements OnGatewayConnection, OnGatewayDiscon
     handleJoinRoom(client: Socket, data: any): Promise<void>;
     handleMessage(client: Socket, data: any): Promise<void>;
     handleGetChatHistory(client: Socket, data: any): Promise<void>;
+    broadcastFileToRoom(roomId: string, fileUrl: string, fileKey: string): Promise<void>;
 }

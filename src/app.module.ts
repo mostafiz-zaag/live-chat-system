@@ -3,6 +3,7 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { AgentModule } from './modules/agents/agent.module';
 import { ChatGateway } from './modules/chat/chat.gateway'; // ✅ Import WebSocket Gateway
 import { ChatModule } from './modules/chat/chat.module';
+import { FileModule } from './modules/file/file.module';
 import { NatsModule } from './modules/nats/nats.module';
 import { UserModule } from './modules/user/user.module';
 
@@ -22,6 +23,7 @@ import { UserModule } from './modules/user/user.module';
         UserModule,
         NatsModule,
         AgentModule, // ✅ Remove duplicate ChatModule
+        FileModule,
     ],
     providers: [ChatGateway], // ✅ Register WebSocket Gateway
 })

@@ -11,6 +11,7 @@ const common_1 = require("@nestjs/common");
 const typeorm_1 = require("@nestjs/typeorm");
 const agent_entity_1 = require("../agents/entities/agent.entity");
 const chat_controller_1 = require("./chat.controller");
+const chat_gateway_1 = require("./chat.gateway");
 const chat_repository_1 = require("./chat.repository");
 const chat_service_1 = require("./chat.service");
 const message_entity_1 = require("./entities/message.entity");
@@ -24,8 +25,8 @@ exports.ChatModule = ChatModule = __decorate([
             typeorm_1.TypeOrmModule.forFeature([message_entity_1.Message, room_entity_1.Room, agent_entity_1.Agent]),
         ],
         controllers: [chat_controller_1.ChatController],
-        providers: [chat_repository_1.ChatRepository, chat_service_1.ChatService],
-        exports: [chat_repository_1.ChatRepository, chat_service_1.ChatService],
+        providers: [chat_repository_1.ChatRepository, chat_service_1.ChatService, chat_gateway_1.ChatGateway],
+        exports: [chat_repository_1.ChatRepository, chat_service_1.ChatService, chat_gateway_1.ChatGateway],
     })
 ], ChatModule);
 //# sourceMappingURL=chat.module.js.map

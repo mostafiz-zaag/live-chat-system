@@ -12,6 +12,7 @@ const typeorm_1 = require("@nestjs/typeorm");
 const agent_module_1 = require("./modules/agents/agent.module");
 const chat_gateway_1 = require("./modules/chat/chat.gateway");
 const chat_module_1 = require("./modules/chat/chat.module");
+const file_module_1 = require("./modules/file/file.module");
 const nats_module_1 = require("./modules/nats/nats.module");
 const user_module_1 = require("./modules/user/user.module");
 let AppModule = class AppModule {
@@ -34,6 +35,7 @@ exports.AppModule = AppModule = __decorate([
             user_module_1.UserModule,
             nats_module_1.NatsModule,
             agent_module_1.AgentModule,
+            file_module_1.FileModule,
         ],
         providers: [chat_gateway_1.ChatGateway],
     })
