@@ -1,9 +1,21 @@
-import { Body, Controller, Post } from '@nestjs/common';
+import {
+    Body,
+    Controller,
+    Inject,
+    Post,
+    UploadedFile,
+    UseInterceptors,
+} from '@nestjs/common';
+import { ClientProxy } from '@nestjs/microservices';
+import { FileInterceptor } from '@nestjs/platform-express';
 import { ChatService } from './chat.service';
 
 @Controller('chat')
 export class ChatController {
-    constructor(private readonly chatService: ChatService) {}
+    constructor(
+        private readonly chatService: ChatService,
+        @Inject('NATS_SERVICE') private readonly natsClient: ClientProxy,
+    ) {}
 
     // User requests to leave the queue
     @Post('leave-queue')
@@ -55,5 +67,21 @@ export class ChatController {
         console.log(`[LEAVE CHAT] Agent ${agentId} is leaving the chat.`);
 
         return await this.chatService.leaveAgentChat(agentId);
+    }
+
+    @Post('upload')
+    @UseInterceptors(FileInterceptor('file'))
+    async uploadFile(
+        @UploadedFile() file: Express.Multer.File,
+        @Body('roomId') roomId: string,
+    ) {
+        if (!file) {
+            return { message: 'File upload failed' };
+        }
+
+        // ✅ Upload file and get the file URL
+        const { fileUrl } = await this.chatService.uploadFile(file, roomId);
+
+        return { message: 'File uploaded successfully', fileUrl };
     }
 }

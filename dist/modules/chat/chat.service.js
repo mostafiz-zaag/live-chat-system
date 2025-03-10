@@ -14,16 +14,44 @@ var __param = (this && this.__param) || function (paramIndex, decorator) {
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.ChatService = void 0;
 const common_1 = require("@nestjs/common");
+const microservices_1 = require("@nestjs/microservices");
 const typeorm_1 = require("@nestjs/typeorm");
 const typeorm_2 = require("typeorm");
+const uuid_1 = require("uuid");
 const agent_entity_1 = require("../agents/entities/agent.entity");
+const s3_config_1 = require("../config/s3-config");
 const message_entity_1 = require("./entities/message.entity");
 const room_entity_1 = require("./entities/room.entity");
 let ChatService = class ChatService {
-    constructor(roomRepository, messageRepository, agentRepository) {
+    constructor(roomRepository, messageRepository, agentRepository, s3ConfigService, natsClient) {
         this.roomRepository = roomRepository;
         this.messageRepository = messageRepository;
         this.agentRepository = agentRepository;
+        this.s3ConfigService = s3ConfigService;
+        this.natsClient = natsClient;
+    }
+    async uploadFile(file, roomId) {
+        console.log(`📢 Uploading file for room ${roomId}`);
+        const fileKey = `${roomId}/${(0, uuid_1.v4)()}_${file.originalname}`;
+        const params = {
+            Bucket: this.s3ConfigService.getBucketName(),
+            Key: fileKey,
+            Body: file.buffer,
+            ContentType: file.mimetype,
+            ACL: 'public-read',
+        };
+        try {
+            await this.s3ConfigService.s3.upload(params).promise();
+            const fileUrl = `${process.env.S3_URL}/${this.s3ConfigService.getBucketName()}/${fileKey}`;
+            console.log(`✅ File uploaded: ${fileUrl}`);
+            console.log(`📢 Sending NATS event: file.uploaded → Room ${roomId}`);
+            this.natsClient.emit('file.uploaded', { roomId, fileUrl });
+            return { fileUrl, fileKey };
+        }
+        catch (error) {
+            console.error(`❌ File upload failed: ${error.message}`);
+            throw new Error(`File upload failed: ${error.message}`);
+        }
     }
     async createRoom(userId) {
         console.log(`[CREATE ROOM] Creating chat room for user ${userId}`);
@@ -185,8 +213,11 @@ exports.ChatService = ChatService = __decorate([
     __param(0, (0, typeorm_1.InjectRepository)(room_entity_1.Room)),
     __param(1, (0, typeorm_1.InjectRepository)(message_entity_1.Message)),
     __param(2, (0, typeorm_1.InjectRepository)(agent_entity_1.Agent)),
+    __param(4, (0, common_1.Inject)('NATS_SERVICE')),
     __metadata("design:paramtypes", [typeorm_2.Repository,
         typeorm_2.Repository,
-        typeorm_2.Repository])
+        typeorm_2.Repository,
+        s3_config_1.S3ConfigService,
+        microservices_1.ClientProxy])
 ], ChatService);
 //# sourceMappingURL=chat.service.js.map

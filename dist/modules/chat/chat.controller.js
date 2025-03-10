@@ -14,10 +14,13 @@ var __param = (this && this.__param) || function (paramIndex, decorator) {
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.ChatController = void 0;
 const common_1 = require("@nestjs/common");
+const microservices_1 = require("@nestjs/microservices");
+const platform_express_1 = require("@nestjs/platform-express");
 const chat_service_1 = require("./chat.service");
 let ChatController = class ChatController {
-    constructor(chatService) {
+    constructor(chatService, natsClient) {
         this.chatService = chatService;
+        this.natsClient = natsClient;
     }
     async leaveQueue(userId) {
         console.log(`[LEAVE QUEUE] User ${userId} requested to leave the queue.`);
@@ -46,6 +49,13 @@ let ChatController = class ChatController {
         console.log(`[LEAVE CHAT] Agent ${agentId} is leaving the chat.`);
         return await this.chatService.leaveAgentChat(agentId);
     }
+    async uploadFile(file, roomId) {
+        if (!file) {
+            return { message: 'File upload failed' };
+        }
+        const { fileUrl } = await this.chatService.uploadFile(file, roomId);
+        return { message: 'File uploaded successfully', fileUrl };
+    }
 };
 exports.ChatController = ChatController;
 __decorate([
@@ -69,8 +79,19 @@ __decorate([
     __metadata("design:paramtypes", [String]),
     __metadata("design:returntype", Promise)
 ], ChatController.prototype, "leaveChat", null);
+__decorate([
+    (0, common_1.Post)('upload'),
+    (0, common_1.UseInterceptors)((0, platform_express_1.FileInterceptor)('file')),
+    __param(0, (0, common_1.UploadedFile)()),
+    __param(1, (0, common_1.Body)('roomId')),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Object, String]),
+    __metadata("design:returntype", Promise)
+], ChatController.prototype, "uploadFile", null);
 exports.ChatController = ChatController = __decorate([
     (0, common_1.Controller)('chat'),
-    __metadata("design:paramtypes", [chat_service_1.ChatService])
+    __param(1, (0, common_1.Inject)('NATS_SERVICE')),
+    __metadata("design:paramtypes", [chat_service_1.ChatService,
+        microservices_1.ClientProxy])
 ], ChatController);
 //# sourceMappingURL=chat.controller.js.map

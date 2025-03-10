@@ -1,3 +1,5 @@
+import { Inject, OnModuleInit } from '@nestjs/common';
+import { ClientProxy, EventPattern } from '@nestjs/microservices';
 import {
     ConnectedSocket,
     MessageBody,
@@ -11,8 +13,13 @@ import { Server, Socket } from 'socket.io';
 import { ChatService } from './chat.service';
 
 @WebSocketGateway({ cors: { origin: '*' } })
-export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
-    constructor(private readonly chatService: ChatService) {}
+export class ChatGateway
+    implements OnGatewayConnection, OnGatewayDisconnect, OnModuleInit
+{
+    constructor(
+        private readonly chatService: ChatService,
+        @Inject('NATS_SERVICE') private readonly natsClient: ClientProxy,
+    ) {}
 
     @WebSocketServer()
     server: Server;
@@ -22,12 +29,36 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
         { userId: string; role: 'user' | 'agent' }
     >();
 
+    // ✅ Ensure NATS subscriber is initialized when the module starts
+    async onModuleInit() {
+        console.log(
+            `🚀 ChatGateway initialized. Subscribing to NATS events...`,
+        );
+
+        await this.natsClient.connect(); // Ensure NATS connection
+
+        // ✅ Subscribe to `file.uploaded` events from NATS
+        this.natsClient.send('file.uploaded', {}).subscribe({
+            next: (payload) => {
+                console.log(`📢 Received NATS event: file.uploaded`, payload);
+                this.handleFileUploaded(payload);
+            },
+            error: (err) =>
+                console.error(`❌ Error receiving NATS event: ${err.message}`),
+        });
+    }
+
     handleConnection(client: Socket) {
-        console.log(`Client connected: ${client.id}`);
+        console.log(`✅ Client connected: ${client.id}`);
+
+        if (!this.server) {
+            this.server = client.nsp.server;
+            console.log(`🚀 WebSocket server initialized.`);
+        }
     }
 
     handleDisconnect(client: Socket) {
-        console.log(`Client disconnected: ${client.id}`);
+        console.log(`❌ Client disconnected: ${client.id}`);
         this.activeUsers.delete(client.id);
     }
 
@@ -36,129 +67,104 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
         @ConnectedSocket() client: Socket,
         @MessageBody() data: any,
     ) {
-        console.log(`🔵 Received joinRoom event (RAW):`, data);
+        console.log(`🔵 Received joinRoom event:`, data);
 
-        // ✅ Force JSON parsing if data is a string
-        if (typeof data === 'string') {
-            try {
+        try {
+            if (typeof data === 'string') {
                 data = JSON.parse(data);
-            } catch (error) {
-                console.error(`❌ Error: Invalid JSON format. Received:`, data);
-                client.emit('error', { message: 'Invalid JSON format.' });
+            }
+
+            if (!data.roomId || !data.userId) {
+                client.emit('error', {
+                    message: 'roomId and userId are required.',
+                });
                 return;
             }
-        }
 
-        // ✅ Check for required fields
-        if (!data.roomId || !data.userId) {
-            console.error(
-                `❌ Error: roomId and userId are required. Received data:`,
-                JSON.stringify(data, null, 2),
-            );
-            client.emit('error', {
-                message: 'roomId and userId are required.',
+            const roomIdNum = parseInt(data.roomId, 10);
+            if (isNaN(roomIdNum)) {
+                client.emit('error', { message: 'Invalid room ID format.' });
+                return;
+            }
+
+            const room = await this.chatService.getRoomById(roomIdNum);
+            if (!room) {
+                client.emit('error', {
+                    message: `Room ${roomIdNum} does not exist.`,
+                });
+                return;
+            }
+
+            client.join(roomIdNum.toString());
+            console.log(`📌 ${data.userId} joined room ${roomIdNum}`);
+
+            client.emit('joinedRoom', {
+                roomId: roomIdNum,
+                message: `You joined room ${roomIdNum}`,
             });
-            return;
+        } catch (error) {
+            console.error(`❌ Error in joinRoom: ${error.message}`);
+            client.emit('error', { message: 'Server error in joinRoom.' });
         }
-
-        const roomIdNum = parseInt(data.roomId, 10);
-        if (isNaN(roomIdNum)) {
-            console.error(`❌ Error: Invalid room ID format.`);
-            client.emit('error', { message: 'Invalid room ID format.' });
-            return;
-        }
-
-        // ✅ Check if the room exists in the database
-        const room = await this.chatService.getRoomById(roomIdNum);
-        if (!room) {
-            console.error(
-                `❌ Error: Room with ID ${roomIdNum} does not exist.`,
-            );
-            client.emit('error', {
-                message: `Room with ID ${roomIdNum} does not exist.`,
-            });
-            return;
-        }
-
-        // ✅ Join the room
-        client.join(roomIdNum.toString());
-        console.log(`📌 ${data.userId} joined room ${roomIdNum}`);
-
-        client.emit('joinedRoom', {
-            roomId: roomIdNum,
-            message: `You joined room ${roomIdNum}`,
-        });
     }
 
-    // ✅ Sending Messages
     @SubscribeMessage('sendMessage')
     async handleMessage(
         @ConnectedSocket() client: Socket,
         @MessageBody() data: any,
     ) {
-        console.log('🔵 Received sendMessage event (RAW):', data);
+        console.log('🔵 Received sendMessage event:', data);
 
-        // ✅ Force JSON parsing if data is a string
-        if (typeof data === 'string') {
-            try {
+        try {
+            if (typeof data === 'string') {
                 data = JSON.parse(data);
-            } catch (error) {
-                console.error('❌ Error: Invalid JSON format.');
-                client.emit('error', { message: 'Invalid JSON format.' });
+            }
+
+            const { roomId, sender, message } = data;
+
+            if (!roomId || !sender || !message) {
+                client.emit('error', {
+                    message: 'roomId, sender, and message are required.',
+                });
                 return;
             }
-        }
 
-        const { roomId, sender, message } = data;
-
-        // ✅ Validate fields
-        if (!roomId || !sender || !message) {
-            console.error(
-                '❌ Error: roomId, sender, and message are required.',
+            const roomIdStr = String(roomId);
+            console.log(
+                `📩 ${sender} sent message in room ${roomIdStr}: "${message}"`,
             );
-            client.emit('error', {
-                message: 'roomId, sender, and message are required.',
-            });
-            return;
+
+            await this.chatService.saveMessage(
+                Number(roomIdStr),
+                sender,
+                message,
+            );
+            this.server.to(roomIdStr).emit('newMessage', { sender, message });
+        } catch (error) {
+            console.error(`❌ Error in handleMessage: ${error.message}`);
+            client.emit('error', { message: 'Server error in sendMessage.' });
         }
-
-        const roomIdStr = String(roomId); // ✅ Convert roomId to string
-
-        console.log(
-            `📩 ${sender} sent message in room ${roomIdStr}: "${message}"`,
-        );
-
-        // ✅ Save message to database
-        await this.chatService.saveMessage(Number(roomIdStr), sender, message);
-
-        // ✅ Broadcast the message to the room
-        this.server.to(roomIdStr).emit('newMessage', { sender, message });
     }
 
-    // ✅ Fetch Chat History
-    @SubscribeMessage('getChatHistory')
-    async handleGetChatHistory(
-        @ConnectedSocket() client: Socket,
-        @MessageBody() data: any,
-    ) {
-        if (typeof data === 'string') {
-            try {
-                data = JSON.parse(data);
-            } catch (error) {
-                console.error('❌ Error: Invalid JSON format.');
-                client.emit('error', { message: 'Invalid JSON format.' });
-                return;
-            }
-        }
-        const { roomId } = data;
+    @EventPattern('file.uploaded')
+    handleFileUploaded(payload: { roomId: string; fileUrl: string }) {
+        console.log(
+            `📢 NATS Event Received: file.uploaded for room ${payload.roomId}`,
+        );
 
-        if (!roomId) {
-            client.emit('error', { message: 'roomId is required.' });
+        if (!this.server) {
+            console.error(`❌ WebSocket server is not initialized.`);
             return;
         }
 
-        const messages = await this.chatService.getChatHistory(roomId);
-        client.emit('chatHistory', messages);
-        console.log(`📜 Sent chat history for room ${roomId}`);
+        console.log(`📢 Broadcasting file to WebSocket room ${payload.roomId}`);
+
+        this.server.to(payload.roomId).emit('newMessage', {
+            sender: 'system',
+            message: `📎 File uploaded: ${payload.fileUrl}`,
+            fileUrl: payload.fileUrl,
+        });
+
+        console.log(`✅ WebSocket event sent to room ${payload.roomId}`);
     }
 }

@@ -1,7 +1,9 @@
+import { ClientProxy } from '@nestjs/microservices';
 import { ChatService } from './chat.service';
 export declare class ChatController {
     private readonly chatService;
-    constructor(chatService: ChatService);
+    private readonly natsClient;
+    constructor(chatService: ChatService, natsClient: ClientProxy);
     leaveQueue(userId: string): Promise<{
         message: string;
     }>;
@@ -12,5 +14,12 @@ export declare class ChatController {
         message: string;
         roomId?: number;
         userId?: string;
+    }>;
+    uploadFile(file: Express.Multer.File, roomId: string): Promise<{
+        message: string;
+        fileUrl?: undefined;
+    } | {
+        message: string;
+        fileUrl: string;
     }>;
 }

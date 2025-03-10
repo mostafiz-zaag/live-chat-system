@@ -1,12 +1,20 @@
+import { ClientProxy } from '@nestjs/microservices';
 import { Repository } from 'typeorm';
 import { Agent } from '../agents/entities/agent.entity';
+import { S3ConfigService } from '../config/s3-config';
 import { Message } from './entities/message.entity';
 import { Room } from './entities/room.entity';
 export declare class ChatService {
     private readonly roomRepository;
     private readonly messageRepository;
     private readonly agentRepository;
-    constructor(roomRepository: Repository<Room>, messageRepository: Repository<Message>, agentRepository: Repository<Agent>);
+    private readonly s3ConfigService;
+    private readonly natsClient;
+    constructor(roomRepository: Repository<Room>, messageRepository: Repository<Message>, agentRepository: Repository<Agent>, s3ConfigService: S3ConfigService, natsClient: ClientProxy);
+    uploadFile(file: Express.Multer.File, roomId: string): Promise<{
+        fileUrl: string;
+        fileKey: string;
+    }>;
     createRoom(userId: string): Promise<{
         message: string;
         room: Room;

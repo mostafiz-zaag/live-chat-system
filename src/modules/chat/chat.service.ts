@@ -1,7 +1,10 @@
-import { Injectable } from '@nestjs/common';
+import { Inject, Injectable } from '@nestjs/common';
+import { ClientProxy } from '@nestjs/microservices';
 import { InjectRepository } from '@nestjs/typeorm';
 import { IsNull, Repository } from 'typeorm';
+import { v4 as uuidv4 } from 'uuid';
 import { Agent } from '../agents/entities/agent.entity';
+import { S3ConfigService } from '../config/s3-config';
 import { Message } from './entities/message.entity';
 import { Room } from './entities/room.entity';
 
@@ -14,7 +17,42 @@ export class ChatService {
         private readonly messageRepository: Repository<Message>,
         @InjectRepository(Agent)
         private readonly agentRepository: Repository<Agent>,
+        private readonly s3ConfigService: S3ConfigService,
+        @Inject('NATS_SERVICE') private readonly natsClient: ClientProxy,
     ) {}
+
+    async uploadFile(file: Express.Multer.File, roomId: string) {
+        console.log(`📢 Uploading file for room ${roomId}`);
+
+        const fileKey = `${roomId}/${uuidv4()}_${file.originalname}`;
+        const params = {
+            Bucket: this.s3ConfigService.getBucketName(),
+            Key: fileKey,
+            Body: file.buffer,
+            ContentType: file.mimetype,
+            ACL: 'public-read',
+        };
+
+        try {
+            await this.s3ConfigService.s3.upload(params).promise();
+
+            const fileUrl = `${process.env.S3_URL}/${this.s3ConfigService.getBucketName()}/${fileKey}`;
+            console.log(`✅ File uploaded: ${fileUrl}`);
+
+            // ✅ Debugging Log: Check if NATS is connected
+            console.log(
+                `📢 Sending NATS event: file.uploaded → Room ${roomId}`,
+            );
+
+            // ✅ Publish event to NATS
+            this.natsClient.emit('file.uploaded', { roomId, fileUrl });
+
+            return { fileUrl, fileKey };
+        } catch (error) {
+            console.error(`❌ File upload failed: ${error.message}`);
+            throw new Error(`File upload failed: ${error.message}`);
+        }
+    }
 
     async createRoom(userId: string): Promise<{ message: string; room: Room }> {
         console.log(`[CREATE ROOM] Creating chat room for user ${userId}`);
