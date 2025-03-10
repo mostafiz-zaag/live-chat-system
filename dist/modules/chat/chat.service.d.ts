@@ -1,12 +1,19 @@
+import { OnModuleInit } from '@nestjs/common';
+import { EventEmitter2 } from '@nestjs/event-emitter';
+import { Server } from 'socket.io';
 import { Repository } from 'typeorm';
 import { Agent } from '../agents/entities/agent.entity';
 import { Message } from './entities/message.entity';
 import { Room } from './entities/room.entity';
-export declare class ChatService {
+export declare class ChatService implements OnModuleInit {
     private readonly roomRepository;
     private readonly messageRepository;
     private readonly agentRepository;
-    constructor(roomRepository: Repository<Room>, messageRepository: Repository<Message>, agentRepository: Repository<Agent>);
+    private eventEmitter;
+    constructor(roomRepository: Repository<Room>, messageRepository: Repository<Message>, agentRepository: Repository<Agent>, eventEmitter: EventEmitter2);
+    private server;
+    onModuleInit(): void;
+    setServer(server: Server): void;
     createRoom(userId: string): Promise<{
         message: string;
         room: Room;

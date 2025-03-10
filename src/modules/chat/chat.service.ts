@@ -1,12 +1,14 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, OnModuleInit } from '@nestjs/common';
+import { EventEmitter2 } from '@nestjs/event-emitter';
 import { InjectRepository } from '@nestjs/typeorm';
+import { Server } from 'socket.io';
 import { IsNull, Repository } from 'typeorm';
 import { Agent } from '../agents/entities/agent.entity';
 import { Message } from './entities/message.entity';
 import { Room } from './entities/room.entity';
 
 @Injectable()
-export class ChatService {
+export class ChatService implements OnModuleInit {
     constructor(
         @InjectRepository(Room)
         private readonly roomRepository: Repository<Room>,
@@ -14,7 +16,29 @@ export class ChatService {
         private readonly messageRepository: Repository<Message>,
         @InjectRepository(Agent)
         private readonly agentRepository: Repository<Agent>,
+        private eventEmitter: EventEmitter2,
     ) {}
+    private server: Server;
+
+    onModuleInit() {
+        this.eventEmitter.on('file.uploaded', async (payload) => {
+            const { roomId, fileUrl } = payload;
+            console.log(
+                `📢 [EVENT] File uploaded for Room ${roomId}: ${fileUrl}`,
+            );
+
+            // Send file URL to the WebSocket room
+            this.server.to(roomId).emit('newMessage', {
+                sender: 'system',
+                message: `📎 File uploaded: ${fileUrl}`,
+                fileUrl: fileUrl,
+            });
+        });
+    }
+
+    setServer(server: Server) {
+        this.server = server;
+    }
 
     async createRoom(userId: string): Promise<{ message: string; room: Room }> {
         console.log(`[CREATE ROOM] Creating chat room for user ${userId}`);

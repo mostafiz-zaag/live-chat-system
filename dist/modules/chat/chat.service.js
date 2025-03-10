@@ -14,16 +14,32 @@ var __param = (this && this.__param) || function (paramIndex, decorator) {
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.ChatService = void 0;
 const common_1 = require("@nestjs/common");
+const event_emitter_1 = require("@nestjs/event-emitter");
 const typeorm_1 = require("@nestjs/typeorm");
 const typeorm_2 = require("typeorm");
 const agent_entity_1 = require("../agents/entities/agent.entity");
 const message_entity_1 = require("./entities/message.entity");
 const room_entity_1 = require("./entities/room.entity");
 let ChatService = class ChatService {
-    constructor(roomRepository, messageRepository, agentRepository) {
+    constructor(roomRepository, messageRepository, agentRepository, eventEmitter) {
         this.roomRepository = roomRepository;
         this.messageRepository = messageRepository;
         this.agentRepository = agentRepository;
+        this.eventEmitter = eventEmitter;
+    }
+    onModuleInit() {
+        this.eventEmitter.on('file.uploaded', async (payload) => {
+            const { roomId, fileUrl } = payload;
+            console.log(`📢 [EVENT] File uploaded for Room ${roomId}: ${fileUrl}`);
+            this.server.to(roomId).emit('newMessage', {
+                sender: 'system',
+                message: `📎 File uploaded: ${fileUrl}`,
+                fileUrl: fileUrl,
+            });
+        });
+    }
+    setServer(server) {
+        this.server = server;
     }
     async createRoom(userId) {
         console.log(`[CREATE ROOM] Creating chat room for user ${userId}`);
@@ -187,6 +203,7 @@ exports.ChatService = ChatService = __decorate([
     __param(2, (0, typeorm_1.InjectRepository)(agent_entity_1.Agent)),
     __metadata("design:paramtypes", [typeorm_2.Repository,
         typeorm_2.Repository,
-        typeorm_2.Repository])
+        typeorm_2.Repository,
+        event_emitter_1.EventEmitter2])
 ], ChatService);
 //# sourceMappingURL=chat.service.js.map

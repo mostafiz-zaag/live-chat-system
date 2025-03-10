@@ -8,6 +8,7 @@ var __decorate = (this && this.__decorate) || function (decorators, target, key,
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.AppModule = void 0;
 const common_1 = require("@nestjs/common");
+const event_emitter_1 = require("@nestjs/event-emitter");
 const typeorm_1 = require("@nestjs/typeorm");
 const agent_module_1 = require("./modules/agents/agent.module");
 const chat_gateway_1 = require("./modules/chat/chat.gateway");
@@ -34,6 +35,7 @@ exports.AppModule = AppModule = __decorate([
             user_module_1.UserModule,
             nats_module_1.NatsModule,
             agent_module_1.AgentModule,
+            event_emitter_1.EventEmitterModule.forRoot(),
         ],
         providers: [chat_gateway_1.ChatGateway],
     })

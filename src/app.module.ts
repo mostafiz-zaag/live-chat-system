@@ -1,4 +1,5 @@
 import { Module } from '@nestjs/common';
+import { EventEmitterModule } from '@nestjs/event-emitter';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { AgentModule } from './modules/agents/agent.module';
 import { ChatGateway } from './modules/chat/chat.gateway'; // ✅ Import WebSocket Gateway
@@ -22,6 +23,7 @@ import { UserModule } from './modules/user/user.module';
         UserModule,
         NatsModule,
         AgentModule, // ✅ Remove duplicate ChatModule
+        EventEmitterModule.forRoot(),
     ],
     providers: [ChatGateway], // ✅ Register WebSocket Gateway
 })
