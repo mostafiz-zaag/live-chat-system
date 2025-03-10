@@ -1,8 +1,26 @@
-export const S3_CONFIG = {
-    S3_PREFIX: process.env.S3_PREFIX || 'live-chat-system',
-    S3_ACCESS_KEY: process.env.S3_ACCESS_KEY || '',
-    S3_SECRET_KEY: process.env.S3_SECRET_KEY || '',
-    S3_BUCKET_NAME: process.env.S3_BUCKET_NAME || 'zaag-test',
-    S3_URL: process.env.S3_URL || 'https://sgp1.digitaloceanspaces.com',
-    REGION: process.env.S3_REGION || 'sgp1', // ✅ Fix: Use S3_REGION instead
-};
+import { Injectable } from '@nestjs/common';
+import * as AWS from 'aws-sdk';
+
+@Injectable()
+export class S3ConfigService {
+    public s3: AWS.S3;
+
+    constructor() {
+        this.s3 = new AWS.S3({
+            accessKeyId: process.env.S3_ACCESS_KEY,
+            secretAccessKey: process.env.S3_SECRET_KEY,
+            region: process.env.S3_REGION,
+            endpoint: process.env.S3_URL,
+            s3ForcePathStyle: true, // ✅ Required for DigitalOcean Spaces
+            signatureVersion: 'v4',
+        });
+    }
+
+    getS3Instance(): AWS.S3 {
+        return this.s3;
+    }
+
+    getBucketName(): string {
+        return process.env.S3_BUCKET_NAME || '';
+    }
+}

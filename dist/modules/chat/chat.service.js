@@ -17,29 +17,42 @@ const common_1 = require("@nestjs/common");
 const event_emitter_1 = require("@nestjs/event-emitter");
 const typeorm_1 = require("@nestjs/typeorm");
 const typeorm_2 = require("typeorm");
+const uuid_1 = require("uuid");
 const agent_entity_1 = require("../agents/entities/agent.entity");
+const s3_config_1 = require("../config/s3.config");
 const message_entity_1 = require("./entities/message.entity");
 const room_entity_1 = require("./entities/room.entity");
 let ChatService = class ChatService {
-    constructor(roomRepository, messageRepository, agentRepository, eventEmitter) {
+    constructor(roomRepository, messageRepository, agentRepository, eventEmitter, s3ConfigService) {
         this.roomRepository = roomRepository;
         this.messageRepository = messageRepository;
         this.agentRepository = agentRepository;
         this.eventEmitter = eventEmitter;
+        this.s3ConfigService = s3ConfigService;
     }
     onModuleInit() {
-        this.eventEmitter.on('file.uploaded', async (payload) => {
-            const { roomId, fileUrl } = payload;
-            console.log(`📢 [EVENT] File uploaded for Room ${roomId}: ${fileUrl}`);
-            this.server.to(roomId).emit('newMessage', {
-                sender: 'system',
-                message: `📎 File uploaded: ${fileUrl}`,
-                fileUrl: fileUrl,
-            });
-        });
+        console.log(`✅ ChatService initialized.`);
     }
-    setServer(server) {
-        this.server = server;
+    async uploadFile(file, roomId) {
+        const fileKey = `${roomId}/${(0, uuid_1.v4)()}-${file.originalname}`;
+        console.log(`📢 Uploading file for room ${roomId}`);
+        const params = {
+            Bucket: this.s3ConfigService.getBucketName(),
+            Key: fileKey,
+            Body: file.buffer,
+            ContentType: file.mimetype,
+            ACL: 'public-read',
+        };
+        try {
+            await this.s3ConfigService.s3.upload(params).promise();
+            const fileUrl = `${process.env.S3_URL}/${this.s3ConfigService.getBucketName()}/${fileKey}`;
+            console.log(`✅ File uploaded: ${fileUrl}`);
+            this.eventEmitter.emit('file.uploaded', { roomId, fileUrl });
+            return { fileUrl, fileKey };
+        }
+        catch (error) {
+            throw new Error(`File upload failed: ${error.message}`);
+        }
     }
     async createRoom(userId) {
         console.log(`[CREATE ROOM] Creating chat room for user ${userId}`);
@@ -204,6 +217,7 @@ exports.ChatService = ChatService = __decorate([
     __metadata("design:paramtypes", [typeorm_2.Repository,
         typeorm_2.Repository,
         typeorm_2.Repository,
-        event_emitter_1.EventEmitter2])
+        event_emitter_1.EventEmitter2,
+        s3_config_1.S3ConfigService])
 ], ChatService);
 //# sourceMappingURL=chat.service.js.map

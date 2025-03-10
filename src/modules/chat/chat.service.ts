@@ -1,12 +1,12 @@
 import { Injectable, OnModuleInit } from '@nestjs/common';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Server } from 'socket.io';
 import { IsNull, Repository } from 'typeorm';
+import { v4 as uuidv4 } from 'uuid';
 import { Agent } from '../agents/entities/agent.entity';
+import { S3ConfigService } from '../config/s3.config';
 import { Message } from './entities/message.entity';
 import { Room } from './entities/room.entity';
-
 @Injectable()
 export class ChatService implements OnModuleInit {
     constructor(
@@ -17,27 +17,37 @@ export class ChatService implements OnModuleInit {
         @InjectRepository(Agent)
         private readonly agentRepository: Repository<Agent>,
         private eventEmitter: EventEmitter2,
+        private readonly s3ConfigService: S3ConfigService,
     ) {}
-    private server: Server;
-
     onModuleInit() {
-        this.eventEmitter.on('file.uploaded', async (payload) => {
-            const { roomId, fileUrl } = payload;
-            console.log(
-                `📢 [EVENT] File uploaded for Room ${roomId}: ${fileUrl}`,
-            );
-
-            // Send file URL to the WebSocket room
-            this.server.to(roomId).emit('newMessage', {
-                sender: 'system',
-                message: `📎 File uploaded: ${fileUrl}`,
-                fileUrl: fileUrl,
-            });
-        });
+        console.log(`✅ ChatService initialized.`);
     }
 
-    setServer(server: Server) {
-        this.server = server;
+    async uploadFile(file: Express.Multer.File, roomId: string) {
+        const fileKey = `${roomId}/${uuidv4()}-${file.originalname}`;
+        console.log(`📢 Uploading file for room ${roomId}`);
+
+        const params = {
+            Bucket: this.s3ConfigService.getBucketName(),
+            Key: fileKey,
+            Body: file.buffer,
+            ContentType: file.mimetype,
+            ACL: 'public-read',
+        };
+
+        try {
+            await this.s3ConfigService.s3.upload(params).promise();
+
+            const fileUrl = `${process.env.S3_URL}/${this.s3ConfigService.getBucketName()}/${fileKey}`;
+            console.log(`✅ File uploaded: ${fileUrl}`);
+
+            // ✅ Emit event instead of directly calling WebSocket
+            this.eventEmitter.emit('file.uploaded', { roomId, fileUrl });
+
+            return { fileUrl, fileKey };
+        } catch (error) {
+            throw new Error(`File upload failed: ${error.message}`);
+        }
     }
 
     async createRoom(userId: string): Promise<{ message: string; room: Room }> {

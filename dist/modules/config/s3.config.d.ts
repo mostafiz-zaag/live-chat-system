@@ -1,8 +1,7 @@
-export declare const S3_CONFIG: {
-    S3_PREFIX: string;
-    S3_ACCESS_KEY: string;
-    S3_SECRET_KEY: string;
-    S3_BUCKET_NAME: string;
-    S3_URL: string;
-    REGION: string;
-};
+import * as AWS from 'aws-sdk';
+export declare class S3ConfigService {
+    s3: AWS.S3;
+    constructor();
+    getS3Instance(): AWS.S3;
+    getBucketName(): string;
+}

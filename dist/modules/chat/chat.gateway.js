@@ -13,13 +13,18 @@ var __param = (this && this.__param) || function (paramIndex, decorator) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.ChatGateway = void 0;
+const event_emitter_1 = require("@nestjs/event-emitter");
 const websockets_1 = require("@nestjs/websockets");
 const socket_io_1 = require("socket.io");
 const chat_service_1 = require("./chat.service");
 let ChatGateway = class ChatGateway {
-    constructor(chatService) {
+    constructor(chatService, eventEmitter) {
         this.chatService = chatService;
+        this.eventEmitter = eventEmitter;
         this.activeUsers = new Map();
+    }
+    afterInit() {
+        console.log('✅ WebSocket initialized');
     }
     handleConnection(client) {
         console.log(`Client connected: ${client.id}`);
@@ -35,13 +40,13 @@ let ChatGateway = class ChatGateway {
                 data = JSON.parse(data);
             }
             catch (error) {
-                console.error(`❌ Error: Invalid JSON format. Received:`, data);
+                console.error(`❌ Error: Invalid JSON format.`, data);
                 client.emit('error', { message: 'Invalid JSON format.' });
                 return;
             }
         }
         if (!data.roomId || !data.userId) {
-            console.error(`❌ Error: roomId and userId are required. Received data:`, JSON.stringify(data, null, 2));
+            console.error(`❌ Error: roomId and userId are required.`);
             client.emit('error', {
                 message: 'roomId and userId are required.',
             });
@@ -55,9 +60,9 @@ let ChatGateway = class ChatGateway {
         }
         const room = await this.chatService.getRoomById(roomIdNum);
         if (!room) {
-            console.error(`❌ Error: Room with ID ${roomIdNum} does not exist.`);
+            console.error(`❌ Error: Room ${roomIdNum} does not exist.`);
             client.emit('error', {
-                message: `Room with ID ${roomIdNum} does not exist.`,
+                message: `Room ${roomIdNum} does not exist.`,
             });
             return;
         }
@@ -113,6 +118,19 @@ let ChatGateway = class ChatGateway {
         client.emit('chatHistory', messages);
         console.log(`📜 Sent chat history for room ${roomId}`);
     }
+    handleFileUploaded(payload) {
+        console.log(`📢 Broadcasting file to room ${payload.roomId}: ${payload.fileUrl}`);
+        if (this.server) {
+            this.server.to(payload.roomId).emit('newMessage', {
+                sender: 'system',
+                message: `📎 File uploaded: ${payload.fileUrl}`,
+                fileUrl: payload.fileUrl,
+            });
+        }
+        else {
+            console.error(`❌ WebSocket server is not initialized.`);
+        }
+    }
 };
 exports.ChatGateway = ChatGateway;
 __decorate([
@@ -143,8 +161,15 @@ __decorate([
     __metadata("design:paramtypes", [socket_io_1.Socket, Object]),
     __metadata("design:returntype", Promise)
 ], ChatGateway.prototype, "handleGetChatHistory", null);
+__decorate([
+    (0, event_emitter_1.OnEvent)('file.uploaded'),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Object]),
+    __metadata("design:returntype", void 0)
+], ChatGateway.prototype, "handleFileUploaded", null);
 exports.ChatGateway = ChatGateway = __decorate([
     (0, websockets_1.WebSocketGateway)({ cors: { origin: '*' } }),
-    __metadata("design:paramtypes", [chat_service_1.ChatService])
+    __metadata("design:paramtypes", [chat_service_1.ChatService,
+        event_emitter_1.EventEmitter2])
 ], ChatGateway);
 //# sourceMappingURL=chat.gateway.js.map

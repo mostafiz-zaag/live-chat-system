@@ -1,19 +1,7 @@
-import { EventEmitter2 } from '@nestjs/event-emitter';
 import { ChatService } from './chat.service';
-interface S3File extends Express.Multer.File {
-    key: string;
-}
 export declare class ChatController {
     private readonly chatService;
-    private eventEmitter;
-    constructor(chatService: ChatService, eventEmitter: EventEmitter2);
-    uploadFile(file: S3File, roomId: string): Promise<{
-        message: string;
-        fileUrl?: undefined;
-    } | {
-        message: string;
-        fileUrl: string;
-    }>;
+    constructor(chatService: ChatService);
     leaveQueue(userId: string): Promise<{
         message: string;
     }>;
@@ -25,5 +13,8 @@ export declare class ChatController {
         roomId?: number;
         userId?: string;
     }>;
+    uploadFile(file: Express.Multer.File, roomId: string): Promise<{
+        fileUrl: string;
+        fileKey: string;
+    }>;
 }
-export {};

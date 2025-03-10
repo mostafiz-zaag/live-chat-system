@@ -1,3 +1,4 @@
+import { EventEmitter2, OnEvent } from '@nestjs/event-emitter';
 import {
     ConnectedSocket,
     MessageBody,
@@ -12,7 +13,10 @@ import { ChatService } from './chat.service';
 
 @WebSocketGateway({ cors: { origin: '*' } })
 export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
-    constructor(private readonly chatService: ChatService) {}
+    constructor(
+        private readonly chatService: ChatService,
+        private readonly eventEmitter: EventEmitter2,
+    ) {}
 
     @WebSocketServer()
     server: Server;
@@ -21,6 +25,10 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
         string,
         { userId: string; role: 'user' | 'agent' }
     >();
+
+    afterInit() {
+        console.log('✅ WebSocket initialized');
+    }
 
     handleConnection(client: Socket) {
         console.log(`Client connected: ${client.id}`);
@@ -38,23 +46,18 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
     ) {
         console.log(`🔵 Received joinRoom event (RAW):`, data);
 
-        // ✅ Force JSON parsing if data is a string
         if (typeof data === 'string') {
             try {
                 data = JSON.parse(data);
             } catch (error) {
-                console.error(`❌ Error: Invalid JSON format. Received:`, data);
+                console.error(`❌ Error: Invalid JSON format.`, data);
                 client.emit('error', { message: 'Invalid JSON format.' });
                 return;
             }
         }
 
-        // ✅ Check for required fields
         if (!data.roomId || !data.userId) {
-            console.error(
-                `❌ Error: roomId and userId are required. Received data:`,
-                JSON.stringify(data, null, 2),
-            );
+            console.error(`❌ Error: roomId and userId are required.`);
             client.emit('error', {
                 message: 'roomId and userId are required.',
             });
@@ -68,19 +71,15 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
             return;
         }
 
-        // ✅ Check if the room exists in the database
         const room = await this.chatService.getRoomById(roomIdNum);
         if (!room) {
-            console.error(
-                `❌ Error: Room with ID ${roomIdNum} does not exist.`,
-            );
+            console.error(`❌ Error: Room ${roomIdNum} does not exist.`);
             client.emit('error', {
-                message: `Room with ID ${roomIdNum} does not exist.`,
+                message: `Room ${roomIdNum} does not exist.`,
             });
             return;
         }
 
-        // ✅ Join the room
         client.join(roomIdNum.toString());
         console.log(`📌 ${data.userId} joined room ${roomIdNum}`);
 
@@ -90,7 +89,6 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
         });
     }
 
-    // ✅ Sending Messages
     @SubscribeMessage('sendMessage')
     async handleMessage(
         @ConnectedSocket() client: Socket,
@@ -98,7 +96,6 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
     ) {
         console.log('🔵 Received sendMessage event (RAW):', data);
 
-        // ✅ Force JSON parsing if data is a string
         if (typeof data === 'string') {
             try {
                 data = JSON.parse(data);
@@ -111,7 +108,6 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
 
         const { roomId, sender, message } = data;
 
-        // ✅ Validate fields
         if (!roomId || !sender || !message) {
             console.error(
                 '❌ Error: roomId, sender, and message are required.',
@@ -122,20 +118,17 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
             return;
         }
 
-        const roomIdStr = String(roomId); // ✅ Convert roomId to string
+        const roomIdStr = String(roomId);
 
         console.log(
             `📩 ${sender} sent message in room ${roomIdStr}: "${message}"`,
         );
 
-        // ✅ Save message to database
         await this.chatService.saveMessage(Number(roomIdStr), sender, message);
 
-        // ✅ Broadcast the message to the room
         this.server.to(roomIdStr).emit('newMessage', { sender, message });
     }
 
-    // ✅ Fetch Chat History
     @SubscribeMessage('getChatHistory')
     async handleGetChatHistory(
         @ConnectedSocket() client: Socket,
@@ -160,5 +153,23 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
         const messages = await this.chatService.getChatHistory(roomId);
         client.emit('chatHistory', messages);
         console.log(`📜 Sent chat history for room ${roomId}`);
+    }
+
+    // ✅ Listen for file upload events and broadcast them via WebSocket
+    @OnEvent('file.uploaded')
+    handleFileUploaded(payload: { roomId: string; fileUrl: string }) {
+        console.log(
+            `📢 Broadcasting file to room ${payload.roomId}: ${payload.fileUrl}`,
+        );
+
+        if (this.server) {
+            this.server.to(payload.roomId).emit('newMessage', {
+                sender: 'system',
+                message: `📎 File uploaded: ${payload.fileUrl}`,
+                fileUrl: payload.fileUrl,
+            });
+        } else {
+            console.error(`❌ WebSocket server is not initialized.`);
+        }
     }
 }

@@ -1,8 +1,8 @@
 import { OnModuleInit } from '@nestjs/common';
 import { EventEmitter2 } from '@nestjs/event-emitter';
-import { Server } from 'socket.io';
 import { Repository } from 'typeorm';
 import { Agent } from '../agents/entities/agent.entity';
+import { S3ConfigService } from '../config/s3.config';
 import { Message } from './entities/message.entity';
 import { Room } from './entities/room.entity';
 export declare class ChatService implements OnModuleInit {
@@ -10,10 +10,13 @@ export declare class ChatService implements OnModuleInit {
     private readonly messageRepository;
     private readonly agentRepository;
     private eventEmitter;
-    constructor(roomRepository: Repository<Room>, messageRepository: Repository<Message>, agentRepository: Repository<Agent>, eventEmitter: EventEmitter2);
-    private server;
+    private readonly s3ConfigService;
+    constructor(roomRepository: Repository<Room>, messageRepository: Repository<Message>, agentRepository: Repository<Agent>, eventEmitter: EventEmitter2, s3ConfigService: S3ConfigService);
     onModuleInit(): void;
-    setServer(server: Server): void;
+    uploadFile(file: Express.Multer.File, roomId: string): Promise<{
+        fileUrl: string;
+        fileKey: string;
+    }>;
     createRoom(userId: string): Promise<{
         message: string;
         room: Room;

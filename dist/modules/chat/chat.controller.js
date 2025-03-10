@@ -13,39 +13,12 @@ var __param = (this && this.__param) || function (paramIndex, decorator) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.ChatController = void 0;
-const client_s3_1 = require("@aws-sdk/client-s3");
 const common_1 = require("@nestjs/common");
-const event_emitter_1 = require("@nestjs/event-emitter");
 const platform_express_1 = require("@nestjs/platform-express");
-const multerS3 = require("multer-s3");
-const s3_config_1 = require("../config/s3.config");
 const chat_service_1 = require("./chat.service");
-const s3 = new client_s3_1.S3Client({
-    region: s3_config_1.S3_CONFIG.REGION || 'sgp1',
-    endpoint: s3_config_1.S3_CONFIG.S3_URL,
-    credentials: {
-        accessKeyId: s3_config_1.S3_CONFIG.S3_ACCESS_KEY,
-        secretAccessKey: s3_config_1.S3_CONFIG.S3_SECRET_KEY,
-    },
-    forcePathStyle: true,
-});
 let ChatController = class ChatController {
-    constructor(chatService, eventEmitter) {
+    constructor(chatService) {
         this.chatService = chatService;
-        this.eventEmitter = eventEmitter;
-    }
-    async uploadFile(file, roomId) {
-        if (!file) {
-            return { message: 'File upload failed' };
-        }
-        const fileUrl = `${s3_config_1.S3_CONFIG.S3_URL}/${s3_config_1.S3_CONFIG.S3_BUCKET_NAME}/${file.key}`;
-        console.log(`✅ File uploaded: ${fileUrl}`);
-        this.eventEmitter.emit('file.uploaded', { roomId, fileUrl });
-        await this.chatService.saveMessage(Number(roomId), 'system', fileUrl);
-        return {
-            message: 'File uploaded successfully',
-            fileUrl: fileUrl,
-        };
     }
     async leaveQueue(userId) {
         console.log(`[LEAVE QUEUE] User ${userId} requested to leave the queue.`);
@@ -74,30 +47,11 @@ let ChatController = class ChatController {
         console.log(`[LEAVE CHAT] Agent ${agentId} is leaving the chat.`);
         return await this.chatService.leaveAgentChat(agentId);
     }
+    async uploadFile(file, roomId) {
+        return await this.chatService.uploadFile(file, roomId);
+    }
 };
 exports.ChatController = ChatController;
-__decorate([
-    (0, common_1.Post)('upload'),
-    (0, common_1.UseInterceptors)((0, platform_express_1.FileInterceptor)('file', {
-        storage: multerS3({
-            s3: s3,
-            bucket: s3_config_1.S3_CONFIG.S3_BUCKET_NAME || 'default-bucket-name',
-            acl: 'public-read',
-            contentType: (req, file, cb) => {
-                cb(null, file.mimetype);
-            },
-            key: (req, file, cb) => {
-                const fileName = `${s3_config_1.S3_CONFIG.S3_PREFIX}/${Date.now()}_${file.originalname}`;
-                cb(null, fileName);
-            },
-        }),
-    })),
-    __param(0, (0, common_1.UploadedFile)()),
-    __param(1, (0, common_1.Body)('roomId')),
-    __metadata("design:type", Function),
-    __metadata("design:paramtypes", [Object, String]),
-    __metadata("design:returntype", Promise)
-], ChatController.prototype, "uploadFile", null);
 __decorate([
     (0, common_1.Post)('leave-queue'),
     __param(0, (0, common_1.Body)('userId')),
@@ -119,9 +73,17 @@ __decorate([
     __metadata("design:paramtypes", [String]),
     __metadata("design:returntype", Promise)
 ], ChatController.prototype, "leaveChat", null);
+__decorate([
+    (0, common_1.Post)('upload'),
+    (0, common_1.UseInterceptors)((0, platform_express_1.FileInterceptor)('file')),
+    __param(0, (0, common_1.UploadedFile)()),
+    __param(1, (0, common_1.Body)('roomId')),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Object, String]),
+    __metadata("design:returntype", Promise)
+], ChatController.prototype, "uploadFile", null);
 exports.ChatController = ChatController = __decorate([
     (0, common_1.Controller)('chat'),
-    __metadata("design:paramtypes", [chat_service_1.ChatService,
-        event_emitter_1.EventEmitter2])
+    __metadata("design:paramtypes", [chat_service_1.ChatService])
 ], ChatController);
 //# sourceMappingURL=chat.controller.js.map

@@ -1,4 +1,3 @@
-import { S3Client } from '@aws-sdk/client-s3';
 import {
     Body,
     Controller,
@@ -6,72 +5,13 @@ import {
     UploadedFile,
     UseInterceptors,
 } from '@nestjs/common';
-import { EventEmitter2 } from '@nestjs/event-emitter';
+
 import { FileInterceptor } from '@nestjs/platform-express';
-import * as multerS3 from 'multer-s3';
-import { S3_CONFIG } from '../config/s3.config';
 import { ChatService } from './chat.service';
-
-interface S3File extends Express.Multer.File {
-    key: string;
-}
-
-const s3 = new S3Client({
-    region: S3_CONFIG.REGION || 'sgp1', // ✅ Ensure correct region
-    endpoint: S3_CONFIG.S3_URL, // ✅ Use DigitalOcean Spaces endpoint
-    credentials: {
-        accessKeyId: S3_CONFIG.S3_ACCESS_KEY,
-        secretAccessKey: S3_CONFIG.S3_SECRET_KEY,
-    },
-    forcePathStyle: true, // ✅ Required for DigitalOcean Spaces
-});
 
 @Controller('chat')
 export class ChatController {
-    constructor(
-        private readonly chatService: ChatService,
-        private eventEmitter: EventEmitter2,
-    ) {}
-
-    @Post('upload')
-    @UseInterceptors(
-        FileInterceptor('file', {
-            storage: multerS3({
-                s3: s3, // ✅ Pass S3 client with endpoint configured
-                bucket: S3_CONFIG.S3_BUCKET_NAME || 'default-bucket-name',
-                acl: 'public-read',
-                contentType: (req, file, cb) => {
-                    cb(null, file.mimetype);
-                },
-                key: (req, file, cb) => {
-                    const fileName = `${S3_CONFIG.S3_PREFIX}/${Date.now()}_${file.originalname}`;
-                    cb(null, fileName);
-                },
-            }),
-        }),
-    )
-    async uploadFile(
-        @UploadedFile() file: S3File,
-        @Body('roomId') roomId: string,
-    ) {
-        if (!file) {
-            return { message: 'File upload failed' };
-        }
-
-        const fileUrl = `${S3_CONFIG.S3_URL}/${S3_CONFIG.S3_BUCKET_NAME}/${file.key}`;
-        console.log(`✅ File uploaded: ${fileUrl}`);
-
-        // Emit event to send file URL to the room
-        this.eventEmitter.emit('file.uploaded', { roomId, fileUrl });
-
-        // Save the file message in chat history
-        await this.chatService.saveMessage(Number(roomId), 'system', fileUrl);
-
-        return {
-            message: 'File uploaded successfully',
-            fileUrl: fileUrl,
-        };
-    }
+    constructor(private readonly chatService: ChatService) {}
 
     // User requests to leave the queue
     @Post('leave-queue')
@@ -123,5 +63,14 @@ export class ChatController {
         console.log(`[LEAVE CHAT] Agent ${agentId} is leaving the chat.`);
 
         return await this.chatService.leaveAgentChat(agentId);
+    }
+
+    @Post('upload')
+    @UseInterceptors(FileInterceptor('file'))
+    async uploadFile(
+        @UploadedFile() file: Express.Multer.File,
+        @Body('roomId') roomId: string,
+    ) {
+        return await this.chatService.uploadFile(file, roomId);
     }
 }
