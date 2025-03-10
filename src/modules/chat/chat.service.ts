@@ -23,7 +23,11 @@ export class ChatService implements OnModuleInit {
         console.log(`✅ ChatService initialized.`);
     }
 
-    async uploadFile(file: Express.Multer.File, roomId: string) {
+    async uploadFile(
+        file: Express.Multer.File,
+        roomId: string,
+        senderType: string,
+    ) {
         const fileKey = `${roomId}/${uuidv4()}-${file.originalname}`;
         console.log(`📢 Uploading file for room ${roomId}`);
 
@@ -40,6 +44,8 @@ export class ChatService implements OnModuleInit {
 
             const fileUrl = `${process.env.S3_URL}/${this.s3ConfigService.getBucketName()}/${fileKey}`;
             console.log(`✅ File uploaded: ${fileUrl}`);
+
+            await this.saveMessage(roomId, senderType, fileUrl);
 
             // ✅ Emit event instead of directly calling WebSocket
             this.eventEmitter.emit('file.uploaded', { roomId, fileUrl });

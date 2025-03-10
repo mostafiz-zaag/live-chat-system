@@ -13,7 +13,7 @@ export declare class ChatController {
         roomId?: number;
         userId?: string;
     }>;
-    uploadFile(file: Express.Multer.File, roomId: string): Promise<{
+    uploadFile(file: Express.Multer.File, roomId: string, senderType: string): Promise<{
         fileUrl: string;
         fileKey: string;
     }>;

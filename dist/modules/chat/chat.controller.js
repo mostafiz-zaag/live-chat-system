@@ -47,8 +47,8 @@ let ChatController = class ChatController {
         console.log(`[LEAVE CHAT] Agent ${agentId} is leaving the chat.`);
         return await this.chatService.leaveAgentChat(agentId);
     }
-    async uploadFile(file, roomId) {
-        return await this.chatService.uploadFile(file, roomId);
+    async uploadFile(file, roomId, senderType) {
+        return await this.chatService.uploadFile(file, roomId, senderType);
     }
 };
 exports.ChatController = ChatController;
@@ -78,8 +78,9 @@ __decorate([
     (0, common_1.UseInterceptors)((0, platform_express_1.FileInterceptor)('file')),
     __param(0, (0, common_1.UploadedFile)()),
     __param(1, (0, common_1.Body)('roomId')),
+    __param(2, (0, common_1.Body)('senderType')),
     __metadata("design:type", Function),
-    __metadata("design:paramtypes", [Object, String]),
+    __metadata("design:paramtypes", [Object, String, String]),
     __metadata("design:returntype", Promise)
 ], ChatController.prototype, "uploadFile", null);
 exports.ChatController = ChatController = __decorate([

@@ -33,7 +33,7 @@ let ChatService = class ChatService {
     onModuleInit() {
         console.log(`✅ ChatService initialized.`);
     }
-    async uploadFile(file, roomId) {
+    async uploadFile(file, roomId, senderType) {
         const fileKey = `${roomId}/${(0, uuid_1.v4)()}-${file.originalname}`;
         console.log(`📢 Uploading file for room ${roomId}`);
         const params = {
@@ -47,6 +47,7 @@ let ChatService = class ChatService {
             await this.s3ConfigService.s3.upload(params).promise();
             const fileUrl = `${process.env.S3_URL}/${this.s3ConfigService.getBucketName()}/${fileKey}`;
             console.log(`✅ File uploaded: ${fileUrl}`);
+            await this.saveMessage(roomId, senderType, fileUrl);
             this.eventEmitter.emit('file.uploaded', { roomId, fileUrl });
             return { fileUrl, fileKey };
         }

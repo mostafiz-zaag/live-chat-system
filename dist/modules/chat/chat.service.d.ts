@@ -13,7 +13,7 @@ export declare class ChatService implements OnModuleInit {
     private readonly s3ConfigService;
     constructor(roomRepository: Repository<Room>, messageRepository: Repository<Message>, agentRepository: Repository<Agent>, eventEmitter: EventEmitter2, s3ConfigService: S3ConfigService);
     onModuleInit(): void;
-    uploadFile(file: Express.Multer.File, roomId: string): Promise<{
+    uploadFile(file: Express.Multer.File, roomId: string, senderType: string): Promise<{
         fileUrl: string;
         fileKey: string;
     }>;

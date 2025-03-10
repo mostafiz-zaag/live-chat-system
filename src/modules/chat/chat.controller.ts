@@ -70,7 +70,8 @@ export class ChatController {
     async uploadFile(
         @UploadedFile() file: Express.Multer.File,
         @Body('roomId') roomId: string,
+        @Body('senderType') senderType: string,
     ) {
-        return await this.chatService.uploadFile(file, roomId);
+        return await this.chatService.uploadFile(file, roomId, senderType);
     }
 }
