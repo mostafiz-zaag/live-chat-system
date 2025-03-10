@@ -1,32 +1,55 @@
-import { Body, Controller, Get, Post } from '@nestjs/common';
+import { Body, Controller, Get, Param, Post, Put } from '@nestjs/common';
 import { AgentService } from './agent.service';
+import { AgentStatusDto } from './dto/agent.dto';
 
 @Controller('agents')
 export class AgentController {
-    constructor(private readonly agentsService: AgentService) {}
+    constructor(private readonly agentService: AgentService) {}
 
     @Post('ready')
-    async joinQueue(@Body('agentId') agentId: string) {
-        return this.agentsService.joinQueue(agentId);
+    async joinQueue(@Body() agentStatusDto: AgentStatusDto) {
+        return this.agentService.joinQueue(agentStatusDto.agentId);
     }
 
-    @Post('/busy')
-    async markAgentBusy(@Body('agentId') agentId: string) {
-        return this.agentsService.markAgentBusy(agentId);
+    @Post('busy')
+    async markAgentBusy(@Body() agentStatusDto: AgentStatusDto) {
+        return this.agentService.markAgentBusy(agentStatusDto.agentId);
     }
 
     @Post('finish-chat')
-    async finishChat(@Body('agentId') agentId: string) {
-        return this.agentsService.finishChat(agentId);
+    async finishChat(@Body() agentStatusDto: AgentStatusDto) {
+        return this.agentService.finishChat(agentStatusDto.agentId);
     }
 
     @Get('all-ready-agents')
     async getAgents() {
-        return this.agentsService.getAllReadyAgents();
+        return this.agentService.getAllReadyAgents();
     }
 
-    @Get('/all')
+    @Get('all')
     async getAllAgents() {
-        return this.agentsService.getAllAgents();
+        return this.agentService.getAllAgents();
+    }
+
+    @Put(':agentId/status')
+    async updateAgentStatus(
+        @Param('agentId') agentId: string,
+        @Body() agentStatusDto: AgentStatusDto,
+    ) {
+        return this.agentService.updateAgentStatus(
+            agentId,
+            agentStatusDto.status,
+        );
+    }
+
+    @Get(':agentId')
+    async getAgentById(@Param('agentId') agentId: string) {
+        return this.agentService.getAgentById(agentId);
+    }
+
+    //
+    @Post('create')
+    async createAgent(@Body() agentStatusDto: AgentStatusDto) {
+        return this.agentService.createAgent(agentStatusDto);
     }
 }
