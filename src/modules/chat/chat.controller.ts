@@ -4,31 +4,32 @@ import {
     Post,
     UploadedFile,
     UseInterceptors,
+    UsePipes,
+    ValidationPipe,
 } from '@nestjs/common';
-
 import { FileInterceptor } from '@nestjs/platform-express';
 import { ChatService } from './chat.service';
+import { LeaveAgentChatDto, LeaveChatDto } from './dto/leave-chat.dto';
+import { UploadFileDto } from './dto/upload-file.dto';
 
 @Controller('chat')
 export class ChatController {
     constructor(private readonly chatService: ChatService) {}
 
-    // User requests to leave the queue
     @Post('leave-queue')
-    async leaveQueue(@Body('userId') userId: string) {
+    @UsePipes(new ValidationPipe({ whitelist: true }))
+    async leaveQueue(@Body() leaveChatDto: LeaveChatDto) {
+        const { userId } = leaveChatDto;
         console.log(
             `[LEAVE QUEUE] User ${userId} requested to leave the queue.`,
         );
 
-        // Check if the user is in the queue (waiting for an agent)
         const chatRoom = await this.chatService.getWaitingRoomByUser(userId);
         if (!chatRoom) {
             return { message: `User ${userId} is not in the queue.` };
         }
 
-        // If the user has been assigned to an agent, update the room accordingly
         if (chatRoom.agentId) {
-            // Remove the user from the room (keeping it open for the agent to finish the chat)
             chatRoom.userId = null;
             await this.chatService.updateRoom(chatRoom);
 
@@ -37,7 +38,6 @@ export class ChatController {
             };
         }
 
-        // If no agent is assigned, remove the user from the queue (delete the room)
         await this.chatService.deleteRoom(chatRoom.id);
         console.log(
             `[LEAVE QUEUE] User ${userId} removed from the queue. Room ${chatRoom.id} deleted.`,
@@ -48,30 +48,39 @@ export class ChatController {
         };
     }
 
-    // Endpoint for user to leave the chat or queue
     @Post('leave-user-chat')
-    async leaveUserChat(@Body('userId') userId: string) {
+    @UsePipes(new ValidationPipe({ whitelist: true }))
+    async leaveUserChat(@Body() leaveChatDto: LeaveChatDto) {
         console.log(
-            `[LEAVE USER CHAT] User ${userId} requested to leave chat.`,
+            `[LEAVE USER CHAT] User ${leaveChatDto.userId} requested to leave chat.`,
         );
-
-        return await this.chatService.leaveUserChat(userId);
+        return await this.chatService.leaveUserChat(leaveChatDto.userId);
     }
 
     @Post('leave-agent-chat')
-    async leaveChat(@Body('agentId') agentId: string) {
-        console.log(`[LEAVE CHAT] Agent ${agentId} is leaving the chat.`);
-
-        return await this.chatService.leaveAgentChat(agentId);
+    @UsePipes(new ValidationPipe({ whitelist: true }))
+    async leaveChat(@Body() leaveAgentChatDto: LeaveAgentChatDto) {
+        console.log(
+            `[LEAVE CHAT] Agent ${leaveAgentChatDto.agentId} is leaving the chat.`,
+        );
+        return await this.chatService.leaveAgentChat(leaveAgentChatDto.agentId);
     }
 
     @Post('upload')
     @UseInterceptors(FileInterceptor('file'))
+    @UsePipes(new ValidationPipe({ whitelist: true }))
     async uploadFile(
         @UploadedFile() file: Express.Multer.File,
-        @Body('roomId') roomId: string,
-        @Body('senderType') senderType: string,
+        @Body() uploadFileDto: UploadFileDto,
     ) {
-        return await this.chatService.uploadFile(file, roomId, senderType);
+        if (!file) {
+            return { message: 'File upload failed. No file received.' };
+        }
+
+        return await this.chatService.uploadFile(
+            file,
+            uploadFileDto.roomId,
+            uploadFileDto.senderType,
+        );
     }
 }

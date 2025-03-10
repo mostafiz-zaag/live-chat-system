@@ -16,11 +16,14 @@ exports.ChatController = void 0;
 const common_1 = require("@nestjs/common");
 const platform_express_1 = require("@nestjs/platform-express");
 const chat_service_1 = require("./chat.service");
+const leave_chat_dto_1 = require("./dto/leave-chat.dto");
+const upload_file_dto_1 = require("./dto/upload-file.dto");
 let ChatController = class ChatController {
     constructor(chatService) {
         this.chatService = chatService;
     }
-    async leaveQueue(userId) {
+    async leaveQueue(leaveChatDto) {
+        const { userId } = leaveChatDto;
         console.log(`[LEAVE QUEUE] User ${userId} requested to leave the queue.`);
         const chatRoom = await this.chatService.getWaitingRoomByUser(userId);
         if (!chatRoom) {
@@ -39,48 +42,54 @@ let ChatController = class ChatController {
             message: `User ${userId} successfully removed from the queue.`,
         };
     }
-    async leaveUserChat(userId) {
-        console.log(`[LEAVE USER CHAT] User ${userId} requested to leave chat.`);
-        return await this.chatService.leaveUserChat(userId);
+    async leaveUserChat(leaveChatDto) {
+        console.log(`[LEAVE USER CHAT] User ${leaveChatDto.userId} requested to leave chat.`);
+        return await this.chatService.leaveUserChat(leaveChatDto.userId);
     }
-    async leaveChat(agentId) {
-        console.log(`[LEAVE CHAT] Agent ${agentId} is leaving the chat.`);
-        return await this.chatService.leaveAgentChat(agentId);
+    async leaveChat(leaveAgentChatDto) {
+        console.log(`[LEAVE CHAT] Agent ${leaveAgentChatDto.agentId} is leaving the chat.`);
+        return await this.chatService.leaveAgentChat(leaveAgentChatDto.agentId);
     }
-    async uploadFile(file, roomId, senderType) {
-        return await this.chatService.uploadFile(file, roomId, senderType);
+    async uploadFile(file, uploadFileDto) {
+        if (!file) {
+            return { message: 'File upload failed. No file received.' };
+        }
+        return await this.chatService.uploadFile(file, uploadFileDto.roomId, uploadFileDto.senderType);
     }
 };
 exports.ChatController = ChatController;
 __decorate([
     (0, common_1.Post)('leave-queue'),
-    __param(0, (0, common_1.Body)('userId')),
+    (0, common_1.UsePipes)(new common_1.ValidationPipe({ whitelist: true })),
+    __param(0, (0, common_1.Body)()),
     __metadata("design:type", Function),
-    __metadata("design:paramtypes", [String]),
+    __metadata("design:paramtypes", [leave_chat_dto_1.LeaveChatDto]),
     __metadata("design:returntype", Promise)
 ], ChatController.prototype, "leaveQueue", null);
 __decorate([
     (0, common_1.Post)('leave-user-chat'),
-    __param(0, (0, common_1.Body)('userId')),
+    (0, common_1.UsePipes)(new common_1.ValidationPipe({ whitelist: true })),
+    __param(0, (0, common_1.Body)()),
     __metadata("design:type", Function),
-    __metadata("design:paramtypes", [String]),
+    __metadata("design:paramtypes", [leave_chat_dto_1.LeaveChatDto]),
     __metadata("design:returntype", Promise)
 ], ChatController.prototype, "leaveUserChat", null);
 __decorate([
     (0, common_1.Post)('leave-agent-chat'),
-    __param(0, (0, common_1.Body)('agentId')),
+    (0, common_1.UsePipes)(new common_1.ValidationPipe({ whitelist: true })),
+    __param(0, (0, common_1.Body)()),
     __metadata("design:type", Function),
-    __metadata("design:paramtypes", [String]),
+    __metadata("design:paramtypes", [leave_chat_dto_1.LeaveAgentChatDto]),
     __metadata("design:returntype", Promise)
 ], ChatController.prototype, "leaveChat", null);
 __decorate([
     (0, common_1.Post)('upload'),
     (0, common_1.UseInterceptors)((0, platform_express_1.FileInterceptor)('file')),
+    (0, common_1.UsePipes)(new common_1.ValidationPipe({ whitelist: true })),
     __param(0, (0, common_1.UploadedFile)()),
-    __param(1, (0, common_1.Body)('roomId')),
-    __param(2, (0, common_1.Body)('senderType')),
+    __param(1, (0, common_1.Body)()),
     __metadata("design:type", Function),
-    __metadata("design:paramtypes", [Object, String, String]),
+    __metadata("design:paramtypes", [Object, upload_file_dto_1.UploadFileDto]),
     __metadata("design:returntype", Promise)
 ], ChatController.prototype, "uploadFile", null);
 exports.ChatController = ChatController = __decorate([
