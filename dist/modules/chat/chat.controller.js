@@ -21,11 +21,13 @@ const multerS3 = require("multer-s3");
 const s3_config_1 = require("../config/s3.config");
 const chat_service_1 = require("./chat.service");
 const s3 = new client_s3_1.S3Client({
-    region: s3_config_1.S3_CONFIG.REGION,
+    region: s3_config_1.S3_CONFIG.REGION || 'sgp1',
+    endpoint: s3_config_1.S3_CONFIG.S3_URL,
     credentials: {
         accessKeyId: s3_config_1.S3_CONFIG.S3_ACCESS_KEY,
         secretAccessKey: s3_config_1.S3_CONFIG.S3_SECRET_KEY,
     },
+    forcePathStyle: true,
 });
 let ChatController = class ChatController {
     constructor(chatService, eventEmitter) {

@@ -17,12 +17,15 @@ interface S3File extends Express.Multer.File {
 }
 
 const s3 = new S3Client({
-    region: S3_CONFIG.REGION,
+    region: S3_CONFIG.REGION || 'sgp1', // ✅ Ensure correct region
+    endpoint: S3_CONFIG.S3_URL, // ✅ Use DigitalOcean Spaces endpoint
     credentials: {
         accessKeyId: S3_CONFIG.S3_ACCESS_KEY,
         secretAccessKey: S3_CONFIG.S3_SECRET_KEY,
     },
+    forcePathStyle: true, // ✅ Required for DigitalOcean Spaces
 });
+
 @Controller('chat')
 export class ChatController {
     constructor(
@@ -34,11 +37,11 @@ export class ChatController {
     @UseInterceptors(
         FileInterceptor('file', {
             storage: multerS3({
-                s3: s3,
+                s3: s3, // ✅ Pass S3 client with endpoint configured
                 bucket: S3_CONFIG.S3_BUCKET_NAME || 'default-bucket-name',
                 acl: 'public-read',
                 contentType: (req, file, cb) => {
-                    cb(null, file.mimetype); // ✅ Use the file's original MIME type
+                    cb(null, file.mimetype);
                 },
                 key: (req, file, cb) => {
                     const fileName = `${S3_CONFIG.S3_PREFIX}/${Date.now()}_${file.originalname}`;
