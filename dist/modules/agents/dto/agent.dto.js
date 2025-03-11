@@ -16,11 +16,11 @@ class AgentStatusDto {
 exports.AgentStatusDto = AgentStatusDto;
 __decorate([
     (0, class_validator_1.IsNotEmpty)({ message: 'Agent ID is required.' }),
+    (0, class_validator_1.IsOptional)(),
     __metadata("design:type", String)
 ], AgentStatusDto.prototype, "agentId", void 0);
 __decorate([
     (0, class_validator_1.IsNotEmpty)({ message: 'Name is required.' }),
-    (0, class_validator_1.Length)(3, 50, { message: 'Name must be between 3 and 50 characters.' }),
     __metadata("design:type", String)
 ], AgentStatusDto.prototype, "name", void 0);
 __decorate([
@@ -28,6 +28,7 @@ __decorate([
     (0, class_validator_1.IsEnum)(['ready', 'busy', 'offline'], {
         message: 'Status must be "ready", "busy", or "offline".',
     }),
+    (0, class_validator_1.IsOptional)(),
     __metadata("design:type", String)
 ], AgentStatusDto.prototype, "status", void 0);
 //# sourceMappingURL=agent.dto.js.map

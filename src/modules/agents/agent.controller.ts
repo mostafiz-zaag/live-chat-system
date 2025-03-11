@@ -8,7 +8,7 @@ export class AgentController {
 
     @Post('ready')
     async joinQueue(@Body() agentStatusDto: AgentStatusDto) {
-        return this.agentService.joinQueue(agentStatusDto.agentId);
+        return this.agentService.joinQueue(agentStatusDto.name);
     }
 
     @Post('busy')

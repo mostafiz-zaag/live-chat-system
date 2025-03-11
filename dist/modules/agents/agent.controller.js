@@ -21,7 +21,7 @@ let AgentController = class AgentController {
         this.agentService = agentService;
     }
     async joinQueue(agentStatusDto) {
-        return this.agentService.joinQueue(agentStatusDto.agentId);
+        return this.agentService.joinQueue(agentStatusDto.name);
     }
     async markAgentBusy(agentStatusDto) {
         return this.agentService.markAgentBusy(agentStatusDto.agentId);

@@ -8,7 +8,7 @@ export declare class AgentService {
     private readonly agentRepository;
     private readonly roomRepository;
     constructor(natsClient: ClientProxy, agentRepository: Repository<Agent>, roomRepository: Repository<Room>);
-    joinQueue(agentId: string): Promise<{
+    joinQueue(agentName: string): Promise<{
         message: string;
         assignedRoom: Room | null;
         totalReadyAgents: number;
@@ -33,7 +33,7 @@ export declare class AgentService {
         message: string;
     }>;
     getAgentById(agentId: string): Promise<Agent | null>;
-    updateAgentStatus(agentId: string, status: 'ready' | 'busy' | 'offline'): Promise<{
+    updateAgentStatus(agentId: string, status: 'ready' | 'busy'): Promise<{
         message: string;
     }>;
     createAgent(agentDto: AgentStatusDto): Promise<{

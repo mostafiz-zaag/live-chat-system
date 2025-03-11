@@ -25,24 +25,29 @@ let AgentService = class AgentService {
         this.agentRepository = agentRepository;
         this.roomRepository = roomRepository;
     }
-    async joinQueue(agentId) {
-        let agent = await this.agentRepository.findOne({ where: { agentId } });
+    async joinQueue(agentName) {
+        let agent = await this.agentRepository.findOne({
+            where: { name: agentName },
+        });
         if (!agent) {
-            agent = this.agentRepository.create({ agentId, status: 'ready' });
-            await this.agentRepository.save(agent);
+            throw new common_1.NotFoundException(`No agent found with the name: ${agentName}`);
         }
         else {
-            await this.agentRepository.update({ agentId }, { status: 'ready' });
+            await this.agentRepository.update({ name: agentName }, { status: 'ready' });
         }
         let assignedRoom = await this.roomRepository.findOne({
             where: { agentId: (0, typeorm_2.IsNull)() },
         });
         if (assignedRoom) {
-            assignedRoom.agentId = agentId;
+            assignedRoom.agentId = agent.agentId;
             await this.roomRepository.save(assignedRoom);
-            await this.agentRepository.update({ agentId }, { status: 'busy' });
+            await this.agentRepository.update({ name: agentName }, { status: 'busy' });
             await this.natsClient
-                .emit('agent.assigned', { agentId, roomId: assignedRoom.id })
+                .emit('agent.assigned', {
+                agentId: agent.agentId,
+                roomId: assignedRoom.id,
+                agentName: agent.name,
+            })
                 .toPromise();
         }
         const readyAgents = await this.agentRepository.find({
@@ -50,8 +55,8 @@ let AgentService = class AgentService {
         });
         return {
             message: assignedRoom
-                ? `Agent ${agentId} assigned to Room ${assignedRoom.id}.`
-                : `Agent ${agentId} is ready.`,
+                ? `Agent "${agentName}" assigned to Room ${assignedRoom.id}.`
+                : `Agent "${agentName}" is now ready.`,
             assignedRoom,
             totalReadyAgents: readyAgents.length,
             readyAgents,
@@ -60,8 +65,7 @@ let AgentService = class AgentService {
     async finishChat(agentId) {
         let agent = await this.agentRepository.findOne({ where: { agentId } });
         if (!agent) {
-            agent = this.agentRepository.create({ agentId, status: 'ready' });
-            await this.agentRepository.save(agent);
+            throw new common_1.NotFoundException(`No agent found with the ID: ${agentId}`);
         }
         else {
             await this.agentRepository.update({ agentId }, { status: 'ready' });
@@ -146,7 +150,11 @@ let AgentService = class AgentService {
         if (existingAgent) {
             throw new common_1.BadRequestException(`Agent with ${name} already exists.`);
         }
-        const newAgent = this.agentRepository.create({ agentId, name, status });
+        const newAgent = this.agentRepository.create({
+            agentId,
+            name,
+            status: 'busy',
+        });
         await this.agentRepository.save(newAgent);
         return {
             message: `Agent "${name}" created successfully.`,
